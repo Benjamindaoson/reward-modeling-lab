@@ -1,62 +1,72 @@
 # Reward Modeling & Preference Learning
 
+<p align="right"><b>简体中文</b> | <a href="./README_EN.md">English</a></p>
+
 [![CI](https://github.com/Benjamindaoson/reward-modeling-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/Benjamindaoson/reward-modeling-lab/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](pyproject.toml)
 [![QLoRA](https://img.shields.io/badge/Post--Training-4--bit%20QLoRA-6f42c1.svg)](docs/results/README.md)
 
-An auditable **8B Reward Model post-training and evaluation project** for pairwise preference learning, 4-bit QLoRA, ranking evaluation, shortcut auditing, checkpoint analysis, and reproducible experiment reporting.
+一个可审计、可复现的 **8B Reward Model 后训练与评估项目**，覆盖 Pairwise Preference Learning、4-bit QLoRA、排序评估、Shortcut Audit、Checkpoint Analysis 与实验结果治理。
 
-The first domain case is **financial question answering**, but the public training/evaluation core is designed around a generic pairwise preference contract rather than a finance-specific model API.
+首个 Domain Case 是**金融问答**，但公开的训练与评估核心采用通用 Pairwise Preference Contract，并不绑定金融领域接口。
 
 ---
 
-## Executive Summary
+## 项目摘要
 
-The verified V1 experiment fine-tunes **Skywork Reward Llama 3.1 8B** on a single **NVIDIA A10 23GB** using **4-bit NF4 QLoRA with BF16 compute**.
+V1 已完成真实 GPU 训练：基于 **Skywork Reward Llama 3.1 8B**，在单张 **NVIDIA A10 23GB** 上使用 **4-bit NF4 QLoRA + BF16 Compute** 完成 1,000 个 optimizer steps。
 
-### Headline result
+### 核心结果
 
-| Model | Frozen Held-out Pairwise Accuracy |
+| 模型 | Frozen Held-out Pairwise Accuracy |
 |---|---:|
 | Base Reward Model | 50.42% |
 | Fine-tuned Reward Model | **91.35%** |
 
-**Absolute improvement: +40.93 percentage points**
+**绝对提升：+40.93 percentage points**
 
-The frozen test contains **451 independent questions**, **4,510 preference pairs**, and **2,255 unique responses**.
+冻结测试集包含：
 
-### Why this project goes beyond a normal fine-tuning demo
+- **451** 个独立问题
+- **4,510** 个 Preference Pairs
+- **2,255** 个 Unique Responses
 
-The 91.35% IID result was deliberately **not** treated as the final conclusion.
+### 为什么这个项目不只是一次“把准确率训高”的 Demo
 
-A trivial heuristic that always selects the longer answer reaches **94.61%** on the original V1 test distribution, revealing a major response-length shortcut. The project therefore adds controlled challenge sets, listwise ranking metrics, truncation analysis, and checkpoint controls to test what the Reward Model actually learned.
+V1 在 IID Test 上做到 91.35% 后，并没有把这个数字直接当作结论。
 
-Key validated findings:
+后续审计发现：一个极其简单的规则——**永远选择更长的回答**——在原始 V1 Test Distribution 上就可以达到 **94.61%**。这说明数据中存在非常明显的 Length Shortcut。
 
-- **Length-Matched Challenge:** 49.56% → **77.78%**
-- **Reversed-Length Challenge:** 47.70% → **74.90%**
-- **Kendall tau:** **0.8828**
-- **NDCG@5:** **0.9474**
-- **Perfect 5-way ranking:** **57.87%**
-- **Overall test-response truncation at 512 tokens:** **98.54%**
-- **Reward vs. full token length Pearson correlation:** **0.8204**
-- **Step 800 BF16 pairwise:** 92.20%
-- **Step 1000 BF16 pairwise:** **92.64%**
+因此项目继续增加了 Controlled Challenge Set、5-way Ranking、Truncation Audit、Reward-Length Correlation 与 Checkpoint Control，用来回答更重要的问题：
 
-The central engineering lesson is:
+> **Reward Model 到底学到了什么？它奖励的是回答质量，还是数据里的表面捷径？**
 
-> **Reward Modeling is not only about minimizing pairwise loss. It is about verifying that the learned reward function actually rewards the behavior we intend.**
+目前已验证的关键结果：
+
+- **Length-Matched Challenge：** 49.56% → **77.78%**
+- **Reversed-Length Challenge：** 47.70% → **74.90%**
+- **Kendall tau：** **0.8828**
+- **NDCG@5：** **0.9474**
+- **Perfect 5-way Ranking：** **57.87%**
+- **512 tokens 下整体截断率：** **98.54%**
+- **Reward vs Full Token Length Pearson：** **0.8204**
+- **Step 800 BF16 Pairwise：** 92.20%
+- **Step 1000 BF16 Pairwise：** **92.64%**
+
+这个项目最终形成的核心认识是：
+
+> **Reward Modeling 不只是把 Pairwise Loss 降下来，更重要的是验证模型学到的 Reward Function 是否真的在奖励我们希望它奖励的行为。**
 
 ---
 
-## Research Story: V1 → Audit → V2
+## V1 → Audit → V2：项目研究故事
 
-This project intentionally follows a **train → attack → diagnose → redesign** loop instead of stopping at the first strong IID score.
+整个项目刻意采用 **Train → Attack → Diagnose → Redesign** 的闭环，而不是在拿到第一个漂亮 IID 指标后结束。
 
 ```mermaid
 flowchart LR
-    subgraph V1["V1 — Build & Train"]
+    subgraph V1["V1 — 构建与训练"]
         A1[35,990 Preference Pairs] --> A2[8B Reward Model]
         A2 --> A3[4-bit NF4 QLoRA + BF16]
         A3 --> A4[Single A10 23GB]
@@ -64,21 +74,21 @@ flowchart LR
         A5 --> A6[50.42% → 91.35% Pairwise]
     end
 
-    subgraph AUDIT["Audit — Attack the Result"]
+    subgraph AUDIT["Audit — 主动攻击结果"]
         B1[Length Heuristic = 94.61%]
         B2[Length-Matched = 77.78%]
         B3[Reversed-Length = 74.90%]
         B4[98.54% Truncation]
         B5[Reward-Length Pearson = 0.8204]
-        B6[Step 800 vs Step 1000 Mismatch]
+        B6[Step 800 vs 1000 Selection Mismatch]
     end
 
-    subgraph V2["V2 — Redesign for Reward Validity"]
-        C1[Length-Balanced Preference Data]
+    subgraph V2["V2 — 为 Reward Validity 重构"]
+        C1[Length-Balanced Data]
         C2[Concise-Correct / Verbose-Wrong]
         C3[Semantic Hard Negatives]
         C4[Human Gold Set]
-        C5[768 / 1024 Context Ablations]
+        C5[768 / 1024 Context Ablation]
         C6[Multi-Seed Validation]
         C7[Ranking-Aware Checkpoint Selection]
     end
@@ -98,43 +108,43 @@ flowchart LR
     C6 --> C7
 ```
 
-The point of V2 is **not** simply to push IID accuracy higher. A better V2 model may have similar IID accuracy while showing materially stronger controlled-challenge performance, lower reward-length dependence, lower truncation, and better multi-seed stability.
+V2 的目标不是单纯把 IID Accuracy 再刷高一点。即使 V2 的 IID Accuracy 与 V1 接近，只要 Controlled Challenge、Human Gold、Multi-seed Stability、Truncation 与 Reward-Length Dependence 明显改善，就可以认为 Reward Function 更可信。
 
 ---
 
-## Table of Contents
+## 目录
 
-- [1. Project Motivation](#1-project-motivation)
-- [2. Verified Scope](#2-verified-scope)
-- [3. System Architecture](#3-system-architecture)
+- [1. 项目动机](#1-项目动机)
+- [2. 已验证范围](#2-已验证范围)
+- [3. 系统架构](#3-系统架构)
 - [4. Preference Data Contract](#4-preference-data-contract)
-- [5. Reward Modeling Objective](#5-reward-modeling-objective)
-- [6. Training Configuration](#6-training-configuration)
-- [7. Single-GPU Performance Engineering](#7-single-gpu-performance-engineering)
-- [8. Formal Training Runtime](#8-formal-training-runtime)
+- [5. Reward Modeling 训练目标](#5-reward-modeling-训练目标)
+- [6. 正式训练配置](#6-正式训练配置)
+- [7. 单卡性能优化](#7-单卡性能优化)
+- [8. 正式训练运行情况](#8-正式训练运行情况)
 - [9. Evaluation Stack](#9-evaluation-stack)
 - [10. Frozen Held-out Results](#10-frozen-held-out-results)
-- [11. Quality-Gap Analysis](#11-quality-gap-analysis)
+- [11. Quality-Gap 分层分析](#11-quality-gap-分层分析)
 - [12. 5-way Ranking Evaluation](#12-5-way-ranking-evaluation)
 - [13. Shortcut Robustness Audit](#13-shortcut-robustness-audit)
-- [14. Truncation & Length-Bias Audit](#14-truncation--length-bias-audit)
+- [14. Truncation 与 Length-Bias Audit](#14-truncation-与-length-bias-audit)
 - [15. Checkpoint Selection Audit](#15-checkpoint-selection-audit)
-- [16. Repository Structure](#16-repository-structure)
-- [17. Installation](#17-installation)
-- [18. Data Preparation](#18-data-preparation)
-- [19. Running Training & Evaluation](#19-running-training--evaluation)
-- [20. Configuration Files](#20-configuration-files)
-- [21. Tests & CI](#21-tests--ci)
-- [22. Reproducibility & Artifact Policy](#22-reproducibility--artifact-policy)
-- [23. Known Limitations](#23-known-limitations)
+- [16. 仓库结构](#16-仓库结构)
+- [17. 安装](#17-安装)
+- [18. 数据准备](#18-数据准备)
+- [19. 运行训练与评估](#19-运行训练与评估)
+- [20. 配置文件](#20-配置文件)
+- [21. Tests 与 CI](#21-tests-与-ci)
+- [22. 可复现性与 Artifact Policy](#22-可复现性与-artifact-policy)
+- [23. 已知限制](#23-已知限制)
 - [24. V2 Roadmap](#24-v2-roadmap)
 - [25. License](#25-license)
 
 ---
 
-## 1. Project Motivation
+## 1. 项目动机
 
-In many LLM post-training problems there is no single canonical answer, but humans can still express a reliable relative preference:
+很多 LLM Post-training 问题并不存在唯一标准答案，但人类通常可以稳定表达相对偏好：
 
 ```text
 Question
@@ -144,67 +154,72 @@ Question
 Preference: A > B
 ```
 
-A Reward Model learns a scalar function:
+Reward Model 学习一个标量函数：
 
 ```text
 reward(question, answer) -> score
 ```
 
-so that preferred answers receive higher scores than rejected answers.
+使 Preferred Response 获得高于 Rejected Response 的 Reward。
 
-This makes Reward Models useful for:
+这类 Reward Model 可以用于：
 
-- pairwise candidate ranking,
-- Best-of-N selection,
-- preference-data filtering,
-- downstream policy optimization,
-- trajectory or response scoring,
-- reward-function diagnostics.
+- Pairwise Candidate Ranking
+- Best-of-N Selection
+- Preference Data Filtering
+- Downstream Policy Optimization
+- Agent / Trajectory Scoring
+- Reward Function Diagnostics
 
-The difficult part is not merely training the model. A Reward Model can achieve high benchmark accuracy for the wrong reason, for example by exploiting response length, formatting, style, or dataset-generation artifacts.
+真正困难的地方并不只是把模型训起来。Reward Model 完全可能因为错误原因获得很高的 Benchmark Score，例如依赖：
 
-This repository therefore treats **evaluation and reward auditing as first-class components**, not as an afterthought.
+- Response Length
+- Format / Style
+- 固定模板
+- Synthetic Data Generation Artifact
 
----
-
-## 2. Verified Scope
-
-### What was actually executed in V1
-
-- pairwise Reward Model training,
-- 4-bit QLoRA on a single NVIDIA GPU,
-- frozen held-out evaluation,
-- quality-gap analysis,
-- 5-way ranking reconstruction,
-- length-shortcut auditing,
-- Length-Matched Challenge evaluation,
-- Reversed-Length Challenge evaluation,
-- truncation analysis,
-- reward-length correlation analysis,
-- Step-800 vs Step-1000 checkpoint comparison,
-- lightweight CI and unit tests,
-- public experiment-result packaging.
-
-### What is intentionally **not claimed as completed**
-
-- GRPO training,
-- PPO training,
-- multi-node training,
-- multi-GPU distributed training,
-- production Reward Model serving benchmark,
-- online RL deployment.
-
-Keeping this boundary explicit is intentional: the repository documents only experiments that were actually executed for V1.
+因此，本项目把 **Evaluation 与 Reward Audit** 作为和训练同等重要的一等公民，而不是训练完成后的附加步骤。
 
 ---
 
-## 3. System Architecture
+## 2. 已验证范围
 
-The verified pipeline has four layers: **data**, **training**, **evaluation**, and **evidence**.
+### V1 已真实执行
+
+- Pairwise Reward Model Training
+- 单张 NVIDIA GPU 上的 4-bit QLoRA
+- Frozen Held-out Evaluation
+- Quality-Gap Analysis
+- 5-way Ranking Reconstruction
+- Length Shortcut Audit
+- Length-Matched Challenge
+- Reversed-Length Challenge
+- Truncation Analysis
+- Reward-Length Correlation Analysis
+- Step 800 vs Step 1000 Checkpoint Comparison
+- Lightweight CI / Unit Tests
+- Public Experiment Result Packaging
+
+### V1 明确不宣称已经完成
+
+- GRPO Training
+- PPO Training
+- Multi-node Training
+- Multi-GPU Distributed Training
+- Production Reward Model Serving Benchmark
+- Online RL Deployment
+
+这个边界是刻意保留的：仓库只公开并声称 **V1 真正执行过的实验与工程链路**。
+
+---
+
+## 3. 系统架构
+
+已验证 Pipeline 分为四层：**数据层、训练层、评估层、证据层**。
 
 ```mermaid
 flowchart LR
-    subgraph DATA["1. Data Layer"]
+    subgraph DATA["1. 数据层"]
         A[Preference Data Archive]
         B[Train / Eval / Test Extraction]
         C[Schema Validation]
@@ -212,7 +227,7 @@ flowchart LR
         A --> B --> C --> D
     end
 
-    subgraph TRAIN["2. Training Layer"]
+    subgraph TRAIN["2. 训练层"]
         E[Skywork Reward Llama 3.1 8B]
         F[4-bit NF4 Base Weights]
         G[LoRA r=16 / alpha=32]
@@ -222,7 +237,7 @@ flowchart LR
         E --> F --> G --> H --> I --> J
     end
 
-    subgraph EVAL["3. Evaluation Layer"]
+    subgraph EVAL["3. 评估层"]
         K[Frozen Pairwise Accuracy]
         L[Quality-Gap Analysis]
         M[5-way Ranking]
@@ -232,9 +247,9 @@ flowchart LR
         Q[Checkpoint Comparison]
     end
 
-    subgraph EVIDENCE["4. Evidence Layer"]
+    subgraph EVIDENCE["4. 证据层"]
         R[JSON / CSV Summaries]
-        S[Training & Eval Figures]
+        S[Training / Eval Figures]
         T[CI / Unit Tests]
         U[README / Public Results]
     end
@@ -259,18 +274,18 @@ flowchart LR
     T --> U
 ```
 
-### Layer responsibilities
+### 各层职责
 
-1. **Data layer** — extract and validate pairwise preference records and preserve metadata needed for audits.
-2. **Training layer** — load the base Reward Model, configure QLoRA, optimize pairwise reward loss, and retain checkpoints.
-3. **Evaluation layer** — evaluate IID pairwise performance, quality gaps, listwise ranking, robustness challenges, truncation, and checkpoint behavior.
-4. **Evidence layer** — retain lightweight metrics, figures, configs, tests, and machine-readable summaries for reproducibility.
+1. **数据层**：提取并校验 Pairwise Preference Records，保留 Ranking / Audit 所需元数据。
+2. **训练层**：加载 Base Reward Model，配置 QLoRA，使用 Pairwise Loss 训练并保存 Checkpoint。
+3. **评估层**：覆盖 IID Pairwise、Quality Gap、完整排序、Robustness Challenge、Truncation 和 Checkpoint Behavior。
+4. **证据层**：保存轻量 Metrics、Figures、Configs、Tests 与机器可读结果，保证实验可追溯。
 
 ---
 
 ## 4. Preference Data Contract
 
-The minimum public schema is:
+公开核心所需最小 Schema：
 
 ```json
 {
@@ -280,9 +295,9 @@ The minimum public schema is:
 }
 ```
 
-The V1 experimental data additionally contains metadata such as question IDs, response-quality levels, and quality gaps for ranking and audit analysis.
+V1 实验数据还包含 Question ID、Response Quality Level、Quality Gap 等元数据，用于 Ranking 与 Audit。
 
-The data loader validates that each record contains non-empty string values for:
+Data Loader 会验证每条记录至少包含非空字符串：
 
 ```text
 question
@@ -290,85 +305,89 @@ chosen
 rejected
 ```
 
-The public extraction utility expects an archive containing train/eval/test JSONL preference splits and extracts only the required files into `data/preferences/`.
+公开 Extraction Utility 期望输入一个包含 train / eval / test JSONL 的 preference-data archive，并将所需文件提取到：
 
-### V1 dataset scale
+```text
+data/preferences/
+```
 
-| Split / View | Size |
+### V1 数据规模
+
+| 数据视图 | 规模 |
 |---|---:|
-| Training questions | 3,599 |
-| Training preference pairs available | **35,990** |
-| Formal run pair instances processed | **~8,000** |
-| Frozen test questions | **451** |
-| Frozen test pairwise comparisons | **4,510** |
-| Unique test responses | **2,255** |
+| Training Questions | 3,599 |
+| 可用 Training Preference Pairs | **35,990** |
+| Formal Run 实际处理 Pair Instances | **~8,000** |
+| Frozen Test Questions | **451** |
+| Frozen Test Pairwise Comparisons | **4,510** |
+| Unique Test Responses | **2,255** |
 
-The distinction between **available training pairs** and **actually processed pair instances** is important: the fixed 1,000-step run did not make a full pass over all 35,990 pairs.
+这里必须区分：**数据集总共有 35,990 个 Pair**，但固定 1,000-step 的正式实验并没有完整遍历全部数据，只处理了约 8,000 个 pair instances。
 
-Raw/private training data is intentionally not distributed in this repository.
+原始 / 私有训练数据不会随公开仓库分发。
 
 ---
 
-## 5. Reward Modeling Objective
+## 5. Reward Modeling 训练目标
 
-For each preference pair:
+每个 Preference Pair：
 
 ```text
 (question, chosen, rejected)
 ```
 
-the Reward Model produces two scalar scores:
+Reward Model 分别输出：
 
 ```text
 r_chosen   = RM(question, chosen)
 r_rejected = RM(question, rejected)
 ```
 
-Training minimizes the pairwise logistic objective:
+训练使用 Pairwise Logistic Objective：
 
 ```text
 L = -log sigmoid(r_chosen - r_rejected)
 ```
 
-The model is therefore optimized for:
+目标是：
 
 ```text
 r_chosen > r_rejected
 ```
 
-The absolute reward zero-point is not constrained. A chosen answer can have a negative score and still be ranked correctly as long as it receives a higher score than the rejected answer.
+因此 Pairwise RM 更关心 Reward Difference，而不是绝对 Reward 是否大于 0。即使 chosen reward 是负数，只要它高于 rejected reward，排序仍然正确。
 
 ---
 
-## 6. Training Configuration
+## 6. 正式训练配置
 
-The frozen formal configuration is available at:
+冻结正式配置：
 
 [`configs/training/formal_gpu_qlora_1000_final.json`](configs/training/formal_gpu_qlora_1000_final.json)
 
-### Model / precision
+### Model / Precision
 
-| Parameter | Value |
+| 参数 | 值 |
 |---|---|
-| Base model | Skywork Reward Llama 3.1 8B |
-| Training mode | `qlora_4bit` |
-| Weight storage | 4-bit |
-| Quantization type | NF4 |
-| Double quantization | Enabled |
+| Base Model | Skywork Reward Llama 3.1 8B |
+| Training Mode | `qlora_4bit` |
+| Weight Storage | 4-bit |
+| Quantization | NF4 |
+| Double Quantization | Enabled |
 | Compute dtype | BF16 |
 | TF32 | Enabled |
-| Gradient checkpointing | Enabled |
+| Gradient Checkpointing | Enabled |
 
 ### LoRA
 
-| Parameter | Value |
+| 参数 | 值 |
 |---|---:|
 | Rank `r` | 16 |
 | Alpha | 32 |
 | Dropout | 0.05 |
-| Modules to save | `score` |
+| Modules to Save | `score` |
 
-Target modules:
+Target Modules：
 
 ```text
 q_proj
@@ -382,31 +401,31 @@ down_proj
 
 ### Optimization
 
-| Parameter | Value |
+| 参数 | 值 |
 |---|---:|
-| Learning rate | `1e-4` |
-| Max optimizer steps | 1,000 |
-| Weight decay | 0.01 |
-| Warmup ratio | 0.05 |
-| Max grad norm | 1.0 |
+| Learning Rate | `1e-4` |
+| Max Optimizer Steps | 1,000 |
+| Weight Decay | 0.01 |
+| Warmup Ratio | 0.05 |
+| Max Grad Norm | 1.0 |
 | Seed | 42 |
-| Train micro-batch | 8 |
-| Gradient accumulation | 1 |
-| Effective batch size | **8** |
-| Eval batch size | 8 |
-| Logging interval | 10 steps |
-| Eval interval | 100 steps |
-| Save interval | 100 steps |
-| Save total limit | 2 |
-| Max sequence length | **512** |
+| Train Micro-batch | 8 |
+| Gradient Accumulation | 1 |
+| Effective Batch Size | **8** |
+| Eval Batch Size | 8 |
+| Logging Interval | 10 steps |
+| Eval Interval | 100 steps |
+| Save Interval | 100 steps |
+| Save Total Limit | 2 |
+| Max Sequence Length | **512** |
 
 ---
 
-## 7. Single-GPU Performance Engineering
+## 7. 单卡性能优化
 
-The formal model was trained on a **single NVIDIA A10 23GB**.
+正式模型在一张 **NVIDIA A10 23GB** 上训练。
 
-Before freezing the final batch configuration, several micro-batch / gradient-accumulation combinations were profiled while holding the effective batch size at 8.
+在冻结最终 Batch 配置前，固定 Effective Batch Size=8，对多组 Micro-batch / Gradient Accumulation 做了 Profiling：
 
 | Micro-batch | Grad Accum | Effective Batch | Approx. sec / step |
 |---:|---:|---:|---:|
@@ -415,92 +434,90 @@ Before freezing the final batch configuration, several micro-batch / gradient-ac
 | 4 | 2 | 8 | 10.90 |
 | **8** | **1** | **8** | **10.45** |
 
-The final configuration used:
+最终采用：
 
 ```text
 per_device_train_batch_size = 8
 gradient_accumulation_steps = 1
 ```
 
-Compared with micro-batch 1 / accumulation 8, this reduced approximate step time by about 25% while preserving the same effective batch size.
+相比 micro-batch=1 / accumulation=8，Step Time 约下降 **25%**，同时保持相同 Effective Batch。
 
-The goal was not to maximize memory consumption, but to find a simple single-GPU configuration that kept the accelerator busy without unnecessary accumulation overhead.
+优化目标不是“把显存塞满”，而是在单 GPU 条件下减少不必要的 accumulation overhead，保持较高计算利用率。
 
 ---
 
-## 8. Formal Training Runtime
+## 8. 正式训练运行情况
 
-| Metric | Value |
+| 指标 | 数值 |
 |---|---:|
 | Hardware | NVIDIA A10 23GB |
-| Optimizer steps | **1,000** |
-| Effective batch | 8 |
-| Approx. pair instances processed | **8,000** |
-| Wall-clock time | **03:18:51** |
-| Mean GPU utilization | **97.73%** |
-| Peak allocated training VRAM | **~11.85GB** |
+| Optimizer Steps | **1,000** |
+| Effective Batch | 8 |
+| Approx. Pair Instances Processed | **8,000** |
+| Wall-clock Time | **03:18:51** |
+| Mean GPU Utilization | **97.73%** |
+| Peak Allocated Training VRAM | **~11.85GB** |
 
-This is the main cost-efficiency result of the engineering path: an 8B Reward Model was adapted on a single 23GB GPU without multi-GPU infrastructure.
+这证明 8B Reward Model 可以在单张 23GB GPU 上通过 QLoRA 完成有效领域适配，而不必为了这个规模强行引入 Multi-GPU Infrastructure。
 
 ---
 
 ## 9. Evaluation Stack
 
-V1 evaluates Reward Model quality at multiple levels.
+V1 不只看一个 Pairwise Accuracy，而是分五层验证 Reward Model。
 
-### Level 1 — Frozen IID pairwise evaluation
+### Level 1 — Frozen IID Pairwise Evaluation
 
-Measures whether:
+判断未见过的 Held-out Pair 是否满足：
 
 ```text
 reward(chosen) > reward(rejected)
 ```
 
-on unseen held-out preference pairs.
+### Level 2 — Quality-Gap Evaluation
 
-### Level 2 — Quality-gap evaluation
+分析随着 Preference Quality Gap 增大，Accuracy 与 Reward Margin 如何变化。
 
-Measures how accuracy and reward margin change as the underlying preference difference becomes larger.
+### Level 3 — 5-way Ranking Evaluation
 
-### Level 3 — 5-way ranking evaluation
+把每个问题的五个质量等级回答恢复成完整排序，并使用：
 
-Reconstructs five response-quality levels per question and evaluates listwise ordering using:
+- Kendall tau
+- Spearman Rank Correlation
+- NDCG@5
+- Top-1 / Bottom-1 Accuracy
+- Perfect 5-way Ranking
 
-- Kendall tau,
-- Spearman rank correlation,
-- NDCG@5,
-- top-1 / bottom-1 accuracy,
-- perfect 5-way ranking.
+### Level 4 — Shortcut Robustness
 
-### Level 4 — Shortcut robustness
+当最明显的 Shortcut——Response Length——被控制或反转以后，检查模型是否仍保留有效 Ranking Ability。
 
-Tests whether the Reward Model still performs when the strongest obvious shortcut — response length — is controlled or reversed.
+### Level 5 — Bias Diagnostics
 
-### Level 5 — Bias diagnostics
+重点检查：
 
-Measures:
-
-- truncation rate,
-- reward-length correlation,
-- checkpoint disagreement,
-- validation-loss vs ranking-metric mismatch.
+- Truncation Rate
+- Reward-Length Correlation
+- Checkpoint Disagreement
+- Validation Loss 与 Ranking Metric 的 Model Selection Mismatch
 
 ---
 
 ## 10. Frozen Held-out Results
 
-The frozen test set contains:
+冻结测试集：
 
-- **451 independent questions**,
-- **4,510 preference pairs**,
-- **2,255 unique responses**.
+- **451 independent questions**
+- **4,510 preference pairs**
+- **2,255 unique responses**
 
 | Metric | Base | Fine-tuned |
 |---|---:|---:|
 | Pairwise Accuracy | 50.42% | **91.35%** |
 | Mean Reward Margin | 0.487 | **11.284** |
 
-Absolute pairwise improvement:
+绝对提升：
 
 ```text
 +40.93 percentage points
@@ -508,13 +525,13 @@ Absolute pairwise improvement:
 
 ![Base vs Fine-tuned](docs/results/figures/base_vs_finetuned_accuracy.png)
 
-### Training curves
+### 训练曲线
 
 ![Training Loss](docs/results/figures/training_loss.png)
 
 ![Training Pairwise Accuracy](docs/results/figures/training_pairwise_accuracy.png)
 
-### Monitor curves
+### Monitor 曲线
 
 ![Monitor Eval Loss](docs/results/figures/monitor_eval_loss.png)
 
@@ -522,9 +539,9 @@ Absolute pairwise improvement:
 
 ---
 
-## 11. Quality-Gap Analysis
+## 11. Quality-Gap 分层分析
 
-A larger quality gap should generally make the preference easier to identify.
+Quality Gap 越大，理论上两个回答越容易区分。
 
 | Quality Gap | Records | Base Accuracy | Fine-tuned Accuracy | Fine-tuned Mean Margin |
 |---:|---:|---:|---:|---:|
@@ -535,74 +552,74 @@ A larger quality gap should generally make the preference easier to identify.
 
 ![Quality Gap Accuracy](docs/results/figures/quality_gap_accuracy.png)
 
-The monotonic increase in fine-tuned reward margin is useful evidence that the model learned an ordinal preference structure rather than only a binary boundary.
+Fine-tuned Reward Margin 随 Gap 单调增加，为模型学到 Ordinal Preference Structure 提供了一层证据，而不只是二元分类边界。
 
 ---
 
 ## 12. 5-way Ranking Evaluation
 
-The 451 questions were reconstructed as five-response ranking tasks.
+451 个问题被恢复成五回答排序任务。
 
-Selected-model results:
+Selected Model 的结果：
 
 | Metric | Result |
 |---|---:|
 | Pairwise Accuracy | ~91.37% |
 | Kendall tau | **0.8828** |
 | NDCG@5 | **0.9474** |
-| Perfect 5-way ranking | **57.87%** |
-| Level-5 response ranked first | **63.86%** |
-| Level-1 response ranked last | **95.57%** |
+| Perfect 5-way Ranking | **57.87%** |
+| Level-5 Response Ranked First | **63.86%** |
+| Level-1 Response Ranked Last | **95.57%** |
 
-Why this matters:
+为什么要做这层评估：
 
-A model can obtain high pairwise accuracy while still producing inconsistent global rankings. Listwise metrics expose whether the learned reward surface preserves the intended ordering across all five quality levels.
+一个模型可以在很多二选一 Pair 上判断正确，但整体五项排序仍可能不一致。Listwise Metrics 可以检查 Reward Surface 是否真的保持了预期的质量顺序。
 
-The primary resume / headline metric remains the frozen A10 pairwise result **50.42% → 91.35%**; the ranking metrics are reported as complementary evidence.
+简历与项目首页的主指标仍保持 Frozen A10 Formal Test：**50.42% → 91.35%**；5-way Ranking 作为补充证据。
 
 ---
 
 ## 13. Shortcut Robustness Audit
 
-### Discovery: the original dataset has a strong length shortcut
+### 发现：原始数据存在严重 Length Shortcut
 
-A trivial heuristic:
+一个非常简单的规则：
 
 ```text
-choose whichever response is longer
+永远选择更长的回答
 ```
 
-achieves:
+在原始 V1 Test Distribution 上达到：
 
 ```text
 94.61% accuracy
 ```
 
-on the original V1 test distribution.
+甚至高于 Fine-tuned RM 的 IID Pairwise Accuracy。
 
-That result is higher than the fine-tuned IID Reward Model accuracy, so the IID result alone cannot be interpreted as unbiased semantic preference accuracy.
+因此，91.35% 不能直接解释成“91.35% 的无偏语义偏好判断能力”。
 
 ### Length-Matched Challenge
 
-Selection rule:
+筛选规则：
 
 ```text
 relative chosen/rejected length difference <= 10%
 ```
 
-Challenge composition:
+Challenge Set：
 
-- **450 pairs**,
-- **340 unique questions**,
-- 442 Gap-1 pairs,
-- 8 Gap-2 pairs.
+- **450 pairs**
+- **340 unique questions**
+- 442 个 Gap-1 Pair
+- 8 个 Gap-2 Pair
 
 | Model | Accuracy | Mean Reward Margin |
 |---|---:|---:|
 | Base | 49.56% | 0.05 |
 | Fine-tuned | **77.78%** | **4.21** |
 
-Absolute improvement:
+绝对提升：
 
 ```text
 +28.22 percentage points
@@ -610,86 +627,86 @@ Absolute improvement:
 
 ### Reversed-Length Challenge
 
-Selection rule:
+筛选规则：
 
 ```text
 chosen response is shorter than rejected response
 ```
 
-Challenge composition:
+Challenge Set：
 
-- **239 pairs**,
-- **205 unique questions**,
-- all 239 pairs are Gap 1,
-- length-only heuristic accuracy = **0%**.
+- **239 pairs**
+- **205 unique questions**
+- 239 / 239 都是 Gap 1
+- Length-only Heuristic Accuracy = **0%**
 
 | Model | Accuracy | Mean Reward Margin |
 |---|---:|---:|
 | Base | 47.70% | -0.20 |
 | Fine-tuned | **74.90%** | **3.68** |
 
-Absolute improvement:
+绝对提升：
 
 ```text
 +27.20 percentage points
 ```
 
-### Interpretation
+### 更严谨的解释
 
-The challenge results support two conclusions simultaneously:
+Challenge 结果同时支持两件事：
 
-1. the V1 preference protocol contains a **significant length artifact**;
-2. the fine-tuned Reward Model still retains **substantial ranking ability after suppressing or reversing the length shortcut**.
+1. V1 Preference Protocol 的确包含显著 Length Artifact；
+2. 在压制或反转 Length Shortcut 后，Fine-tuned RM 仍保留显著 Ranking Ability。
 
-Because the challenge sets are concentrated on hard Gap-1 examples, the IID-to-challenge drop should not be attributed to length bias alone.
+但 Challenge Set 高度集中在最难的 Gap-1 样本，因此 IID → Challenge 的全部下降不能都归因于 Length Bias。
 
 ---
 
-## 14. Truncation & Length-Bias Audit
+## 14. Truncation 与 Length-Bias Audit
 
-The formal experiment used:
+Formal Experiment 使用：
 
 ```text
 max_length = 512
 ```
 
-A later full token-length audit found that approximately:
+后续完整 Token-Length Audit 发现：
 
 ```text
 98.54%
 ```
 
-of the **2,255 unique test responses** were truncated.
+的 **2,255 unique test responses** 被截断。
 
-This is one of the most important V1 limitations.
+这是 V1 最重要的设计限制之一。
 
-Additional diagnostics:
+额外诊断：
 
 | Diagnostic | Value |
 |---|---:|
-| Reward vs full token length Pearson | **0.8204** |
-| Quality-level residualized Pearson | **0.5791** |
+| Reward vs Full Token Length Pearson | **0.8204** |
+| Quality-Level Residualized Pearson | **0.5791** |
 
-Interpretation:
+这说明：
 
-- high-quality labels and response length are entangled in V1,
-- the Reward Model also exhibits strong reward-length association,
-- increasing model quality therefore requires fixing both **data construction** and **context-length handling**.
+- V1 中高质量标签与回答长度高度纠缠；
+- Reward Model 本身也表现出明显的 Reward-Length Association；
+- 下一版必须同时修复 **数据构造** 与 **Context Length**。
 
-This finding is intentionally reported rather than hidden behind the 91.35% IID score.
+这一问题被主动公开，而不是用 91.35% 的漂亮 IID 数字掩盖。
 
 ---
 
 ## 15. Checkpoint Selection Audit
 
-The trainer selected Step 800 because it had the lowest monitor evaluation loss:
+Trainer 因为 Step 800 的 Monitor Eval Loss 最低，所以最终恢复 Step 800：
 
 | Checkpoint | Eval Loss |
 |---|---:|
 | Step 800 | **0.11339** |
 | Step 1000 | 0.13200 |
 
-A later controlled BF16 evaluation scored the same 2,255 responses with a consistent base-model environment.
+后续又在统一 BF16 Base 环境下，对同一批 2,255 Responses 进行 Controlled Evaluation：
 
 | Metric | Base BF16 | Step 800 | Step 1000 |
 |---|---:|---:|---:|
@@ -700,22 +717,22 @@ A later controlled BF16 evaluation scored the same 2,255 responses with a consis
 | Level-5 Top-1 | 17.74% | 65.63% | **67.85%** |
 | Perfect 5-way | 2.00% | 59.65% | **63.41%** |
 
-Direct Step-800 vs Step-1000 comparison:
+Step 800 vs Step 1000：
 
-- pair-ranking disagreements: **84 / 4,510**,
-- questions where Step 1000 has higher pairwise accuracy: **33**,
-- questions where Step 800 is better: **13**,
-- questions with equal pairwise accuracy: **405**.
+- Pair Ranking Disagreements：**84 / 4,510**
+- Step 1000 更好的 Questions：**33**
+- Step 800 更好的 Questions：**13**
+- Pairwise Accuracy 相同：**405**
 
-The main conclusion is not that Step 1000 is universally superior. Instead:
+这里的结论并不是“Step 1000 全面优于 Step 800”，而是：
 
-> **The checkpoint with the lowest validation loss is not necessarily the checkpoint with the best downstream ranking behavior.**
+> **最低 Validation Loss 不一定对应最佳 Downstream Ranking Checkpoint。**
 
-This motivates ranking-aware checkpoint selection in V2.
+这直接推动了 V2 的 Ranking-aware Checkpoint Selection 设计。
 
 ---
 
-## 16. Repository Structure
+## 16. 仓库结构
 
 ```text
 .
@@ -750,32 +767,33 @@ This motivates ranking-aware checkpoint selection in V2.
 │   ├── test_model_artifacts.py
 │   └── test_single_gpu_qlora.py
 ├── LICENSE
+├── README_EN.md
 ├── pyproject.toml
 └── README.md
 ```
 
-### Important modules
+### 核心模块
 
-- `data.py` — preference split extraction, JSONL validation, data summaries.
-- `preflight.py` — training-environment and input-path readiness checks.
-- `model_setup.py` — base-model setup helpers.
-- `model_artifacts.py` — base / adapter artifact resolution.
-- `train.py` — QLoRA loading plan, pairwise reward training, checkpointing.
-- `evaluate.py` — held-out pairwise evaluation entry point.
-- `evaluation_suite.py` — extended ranking and audit utilities used by the experiment workflow.
+- `data.py`：Preference Split Extraction、JSONL Validation、Data Summary。
+- `preflight.py`：训练环境、GPU、数据路径与模型路径检查。
+- `model_setup.py`：Base Model Setup Helpers。
+- `model_artifacts.py`：Base / Adapter Artifact Resolution。
+- `train.py`：QLoRA Loading Plan、Pairwise Reward Training、Checkpointing。
+- `evaluate.py`：Held-out Pairwise Evaluation 入口。
+- `evaluation_suite.py`：Ranking、Challenge 与 Audit 相关扩展评估逻辑。
 
 ---
 
-## 17. Installation
+## 17. 安装
 
-### Requirements
+### 环境要求
 
 - Python **3.11+**
-- NVIDIA GPU for the published 4-bit QLoRA path
+- Published 4-bit QLoRA 路径需要 NVIDIA GPU
 - CUDA-compatible PyTorch
-- local or downloaded base Reward Model
+- 本地或下载好的 Base Reward Model
 
-### Create environment
+### 创建虚拟环境
 
 ```bash
 python -m venv .venv
@@ -783,35 +801,35 @@ source .venv/bin/activate
 python -m pip install --upgrade pip
 ```
 
-### Install package
+### 安装项目
 
 ```bash
 pip install -e ".[train]"
 ```
 
-The `train` optional dependency set includes the training stack such as PyTorch, Transformers, PEFT, bitsandbytes, Accelerate, datasets, and related utilities.
+`train` optional dependency 包含 PyTorch、Transformers、PEFT、bitsandbytes、Accelerate、datasets 等训练依赖。
 
-For GPU environments, install the correct PyTorch build for the local CUDA driver before running the training pipeline.
+GPU 环境下，建议先根据本机 CUDA Driver 安装匹配的 PyTorch Build。
 
 ---
 
-## 18. Data Preparation
+## 18. 数据准备
 
-The end-to-end script expects a preference-data archive:
+端到端脚本需要一个 Preference Data Archive：
 
 ```bash
 export PREFERENCE_DATA_ARCHIVE=/path/to/preference_data.zip
 ```
 
-The CLI extracts the train / eval / test splits into:
+CLI 会把 train / eval / test 拆分到：
 
 ```text
 data/preferences/
 ```
 
-You can also run the data commands independently.
+也可以独立运行数据命令。
 
-### Extract data
+### 提取数据
 
 ```bash
 reward-modeling prepare-data \
@@ -819,48 +837,46 @@ reward-modeling prepare-data \
   --output-dir data/preferences
 ```
 
-### Validate / summarize a split
+### 校验 / 汇总 Split
 
 ```bash
 reward-modeling summarize-data \
   --data data/preferences/train.jsonl
 ```
 
-The raw V1 training dataset is not included in this repository.
+V1 原始训练数据不会包含在公开仓库中。
 
 ---
 
-## 19. Running Training & Evaluation
+## 19. 运行训练与评估
 
-### Base model
-
-Point the pipeline at a local Reward Model directory:
+### 指定 Base Model
 
 ```bash
 export MODEL_PATH=/path/to/base-reward-model
 ```
 
-### Optional training config
+### 指定 Training Config
 
-By default the public runner uses:
+公开 Runner 默认使用：
 
 ```text
 configs/training/single_gpu_qlora.json
 ```
 
-Override it with:
+如果要复现 Formal Config：
 
 ```bash
 export TRAINING_CONFIG=configs/training/formal_gpu_qlora_1000_final.json
 ```
 
-### Run the complete single-GPU path
+### 运行完整单卡链路
 
 ```bash
 bash scripts/run_all_on_gpu.sh
 ```
 
-The script performs:
+脚本执行：
 
 ```text
 prepare data
@@ -870,16 +886,14 @@ prepare data
     -> held-out evaluation
 ```
 
-### Resume from checkpoint
+### 从 Checkpoint 恢复
 
 ```bash
 export RESUME_FROM_CHECKPOINT=/path/to/checkpoint
 bash scripts/run_all_on_gpu.sh
 ```
 
-### Optional environment setup
-
-The runner can invoke the setup helper if requested:
+### 可选自动环境安装
 
 ```bash
 export AUTO_SETUP=1
@@ -889,84 +903,84 @@ bash scripts/run_all_on_gpu.sh
 
 ---
 
-## 20. Configuration Files
+## 20. 配置文件
 
-The repository keeps separate configs for different experiment purposes.
+仓库把不同用途的 Config 分开管理：
 
-| Config | Purpose |
+| Config | 用途 |
 |---|---|
-| `single_gpu_qlora.json` | default public single-GPU QLoRA path |
-| `formal_gpu_qlora_1000_final.json` | frozen formal V1 configuration |
-| `smoke_gpu_qlora.json` | short smoke validation |
-| `speed_probe_batch2.json` | batch profiling |
-| `speed_probe_batch4.json` | batch profiling |
-| `speed_probe_batch8.json` | batch profiling |
-| `speed_probe_evalbatch8.json` | evaluation-batch profiling |
+| `single_gpu_qlora.json` | 默认公开的单卡 QLoRA 路径 |
+| `formal_gpu_qlora_1000_final.json` | V1 冻结正式配置 |
+| `smoke_gpu_qlora.json` | Smoke Validation |
+| `speed_probe_batch2.json` | Batch Profiling |
+| `speed_probe_batch4.json` | Batch Profiling |
+| `speed_probe_batch8.json` | Batch Profiling |
+| `speed_probe_evalbatch8.json` | Eval Batch Profiling |
 
-Keeping profiling, smoke, and formal configs separate makes it easier to distinguish **engineering checks** from **reported experiment results**.
+Smoke、Profiling 与 Formal Config 分离，可以避免把工程检查与正式实验结果混在一起。
 
 ---
 
-## 21. Tests & CI
+## 21. Tests 与 CI
 
-GitHub Actions runs on pushes and pull requests to `main`.
+GitHub Actions 会在 push / pull request 到 `main` 时运行。
 
-The current CI matrix covers:
+当前矩阵：
 
 ```text
 Python 3.11
 Python 3.12
 ```
 
-CI performs:
+CI 执行：
 
-1. repository checkout,
-2. Python setup,
-3. editable package installation,
-4. unit-test discovery under `tests/`,
-5. compilation of public Python sources.
+1. Checkout Repository
+2. Setup Python
+3. Editable Package Installation
+4. `tests/` 下的 Unit Test Discovery
+5. Compile Public Python Sources
 
-Current lightweight tests cover:
+当前轻量测试覆盖：
 
-- adapter/base-model artifact resolution,
-- QLoRA loading-plan configuration,
-- NF4 settings,
-- LoRA rank configuration,
-- full-precision flag behavior.
+- Adapter / Base Model Artifact Resolution
+- QLoRA Loading Plan
+- NF4 Quantization Settings
+- LoRA Rank Configuration
+- Full-precision Flag Behavior
 
-The CI intentionally does **not** attempt an 8B GPU training run on GitHub-hosted CPU runners.
+CI 不会在 GitHub-hosted CPU Runner 上尝试真实 8B GPU Training。
 
 ---
 
-## 22. Reproducibility & Artifact Policy
+## 22. 可复现性与 Artifact Policy
 
-The public repository includes lightweight artifacts that allow the main findings to be inspected without distributing model weights or private data.
+公开仓库保留足够的轻量证据，让主要结果可以被检查，同时避免上传模型权重和私有数据。
 
-Included:
+### Included
 
-- frozen training configs,
-- result summaries,
-- quality-gap CSV,
-- shortcut-audit JSON,
-- checkpoint-comparison JSON,
-- training / evaluation figures,
-- unit tests,
-- CI workflow.
+- Frozen Training Configs
+- Result Summaries
+- Quality-Gap CSV
+- Shortcut-Audit JSON
+- Checkpoint-Comparison JSON
+- Training / Evaluation Figures
+- Unit Tests
+- CI Workflow
 
-Excluded from Git:
+### Excluded from Git
 
-- base-model weights,
-- LoRA adapter checkpoints,
-- optimizer states,
-- raw/private preference data,
-- large local experiment archives,
-- runtime logs and caches.
+- Base Model Weights
+- LoRA Adapter Checkpoints
+- Optimizer States
+- Raw / Private Preference Data
+- Large Local Experiment Archives
+- Runtime Logs / Caches
 
-Detailed public results are available in:
+详细公开结果：
 
 **[docs/results/README.md](docs/results/README.md)**
 
-Machine-readable result summaries are available under:
+机器可读结果：
 
 ```text
 docs/results/data/
@@ -974,58 +988,58 @@ docs/results/data/
 
 ---
 
-## 23. Known Limitations
+## 23. 已知限制
 
-V1 deliberately documents its failure modes.
+V1 主动公开 Failure Modes，而不是只展示漂亮指标。
 
-### 1. Strong length artifact in the preference protocol
+### 1. Preference Protocol 存在严重 Length Artifact
 
-The longer-response heuristic reaches 94.61%, demonstrating that answer length is highly correlated with the preference label.
+Longer-answer heuristic = 94.61%，说明回答长度与 Preference Label 高度相关。
 
-### 2. Severe truncation at 512 tokens
+### 2. 512 Tokens 下严重截断
 
-98.54% of unique test responses exceed the formal context budget and are truncated.
+98.54% 的 Unique Test Responses 超过 Formal Context Budget 并被截断。
 
-### 3. Synthetic preference artifacts may extend beyond length
+### 3. Synthetic Preference Artifact 可能不止长度
 
-Length is the best-audited shortcut in V1, but formatting, style, and generation-template artifacts may also exist.
+V1 最完整审计的是 Length Shortcut，但 Format、Style、Generation Template 也可能存在其他 Shortcut。
 
-### 4. One formal random seed
+### 4. 正式实验只有一个 Seed
 
-The frozen formal experiment uses seed 42. Multi-seed stability is a V2 requirement.
+Frozen Formal Experiment 使用 seed=42。Multi-seed Stability 是 V2 必做项。
 
-### 5. Hyperparameter search is intentionally limited
+### 5. Hyperparameter Search 有限
 
-The project contains targeted performance profiling, but V1 is not a full LR / rank / context grid search.
+V1 做了有针对性的 Profiling，但不是完整的 LR / LoRA Rank / Context Grid Search。
 
-### 6. Fixed-step training does not consume the full dataset
+### 6. Fixed-step Training 没有完整消费全部训练集
 
-1,000 optimizer steps at effective batch 8 correspond to roughly 8,000 pair instances, versus 35,990 available training pairs.
+1,000 steps × effective batch 8 ≈ 8,000 pair instances，而训练集共有 35,990 Preference Pairs。
 
-### 7. Early-stopping configuration was ineffective
+### 7. Early Stopping 配置实际上无法有效触发
 
-With evaluation every 100 steps and only 1,000 total steps, a patience of 20 could not meaningfully trigger within this run.
+Eval every 100 steps、总共 1,000 steps，但 patience=20，因此 V1 的 Early Stopping 基本没有实际作用。
 
-These are not hidden caveats; they are part of the experiment's main conclusions.
+这些不是隐藏 Caveat，而是项目主要结论的一部分。
 
 ---
 
 ## 24. V2 Roadmap
 
-V2 is designed around **better reward validity**, not simply a higher IID score.
+V2 的目标是提高 **Reward Validity**，而不是只追求更高 IID Score。
 
 ### Data
 
-- length-balanced preference pairs,
-- concise-correct vs verbose-wrong pairs,
-- reversed-length hard negatives,
-- semantic hard negatives,
-- format-controlled examples,
-- human-verified gold evaluation set.
+- Length-balanced Preference Pairs
+- Concise-Correct vs Verbose-Wrong
+- Reversed-Length Hard Negatives
+- Semantic Hard Negatives
+- Format-Controlled Examples
+- Human-verified Gold Evaluation Set
 
 ### Context
 
-Ablate:
+计划 Ablation：
 
 ```text
 512
@@ -1033,11 +1047,11 @@ Ablate:
 1024
 ```
 
-and extend further if truncation remains high.
+如果 1024 后 Truncation 仍高，则继续扩展。
 
 ### Stability
 
-Run multiple seeds, for example:
+至少跑多个 Seed，例如：
 
 ```text
 42
@@ -1045,39 +1059,41 @@ Run multiple seeds, for example:
 2026
 ```
 
-and report mean ± standard deviation.
+最终报告 Mean ± Std。
 
-### Checkpoint selection
+### Checkpoint Selection
 
-Replace loss-only checkpoint selection with ranking-aware evaluation using combinations of:
+不再只根据最低 Eval Loss 选模型，而是结合：
 
-- pairwise accuracy,
-- NDCG@5,
-- Kendall tau,
-- challenge-set accuracy,
-- robustness guardrails.
+- Pairwise Accuracy
+- NDCG@5
+- Kendall tau
+- Challenge Accuracy
+- Robustness Guardrails
 
-### Success criterion
+### V2 Success Criterion
 
-A V2 model can be considered better even if IID accuracy is similar or slightly lower, provided that:
+即使 V2 的 IID Accuracy 相同或略低，只要同时满足：
 
-- controlled challenge accuracy improves,
-- human-gold accuracy improves,
-- reward-length dependence drops,
-- truncation is reduced,
-- results are stable across seeds.
+- Controlled Challenge 更强
+- Human Gold 更强
+- Reward-Length Dependence 更低
+- Truncation 明显减少
+- Multi-seed 更稳定
+
+就应该认为 V2 的 Reward Function 比 V1 更可信。
 
 ---
 
 ## 25. License
 
-Released under the [MIT License](LICENSE).
+项目使用 [MIT License](LICENSE)。
 
 ---
 
-## Results at a Glance
+## 核心指标总览
 
-| Category | Metric | Result |
+| 类别 | 指标 | 结果 |
 |---|---|---:|
 | Formal | Base Pairwise Accuracy | 50.42% |
 | Formal | Fine-tuned Pairwise Accuracy | **91.35%** |
@@ -1085,15 +1101,15 @@ Released under the [MIT License](LICENSE).
 | Ranking | Kendall tau | **0.8828** |
 | Ranking | NDCG@5 | **0.9474** |
 | Ranking | Perfect 5-way | **57.87%** |
-| Shortcut | Longer-answer heuristic | **94.61%** |
+| Shortcut | Longer-answer Heuristic | **94.61%** |
 | Robustness | Length-Matched Fine-tuned | **77.78%** |
 | Robustness | Reversed-Length Fine-tuned | **74.90%** |
-| Bias | Overall truncation | **98.54%** |
+| Bias | Overall Truncation | **98.54%** |
 | Bias | Reward-token Pearson | **0.8204** |
 | Checkpoint | Step 800 BF16 Pairwise | 92.20% |
 | Checkpoint | Step 1000 BF16 Pairwise | **92.64%** |
-| Training | Wall-clock time | **03:18:51** |
-| Training | Mean GPU utilization | **97.73%** |
-| Training | Peak allocated VRAM | **~11.85GB** |
+| Training | Wall-clock Time | **03:18:51** |
+| Training | Mean GPU Utilization | **97.73%** |
+| Training | Peak Allocated VRAM | **~11.85GB** |
 
-> **Core lesson:** A high Reward Model score is only useful if we can explain what the model is actually rewarding.
+> **核心结论：一个高分 Reward Model 只有在我们能解释它究竟在奖励什么时，才真正有价值。**

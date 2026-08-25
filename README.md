@@ -24,6 +24,8 @@ The verified V1 experiment fine-tunes **Skywork Reward Llama 3.1 8B** on a singl
 
 **Absolute improvement: +40.93 percentage points**
 
+The frozen test contains **451 independent questions**, **4,510 preference pairs**, and **2,255 unique responses**.
+
 ### Why this project goes beyond a normal fine-tuning demo
 
 The 91.35% IID result was deliberately **not** treated as the final conclusion.
@@ -45,6 +47,58 @@ Key validated findings:
 The central engineering lesson is:
 
 > **Reward Modeling is not only about minimizing pairwise loss. It is about verifying that the learned reward function actually rewards the behavior we intend.**
+
+---
+
+## Research Story: V1 → Audit → V2
+
+This project intentionally follows a **train → attack → diagnose → redesign** loop instead of stopping at the first strong IID score.
+
+```mermaid
+flowchart LR
+    subgraph V1["V1 — Build & Train"]
+        A1[35,990 Preference Pairs] --> A2[8B Reward Model]
+        A2 --> A3[4-bit NF4 QLoRA + BF16]
+        A3 --> A4[Single A10 23GB]
+        A4 --> A5[1,000 Optimizer Steps]
+        A5 --> A6[50.42% → 91.35% Pairwise]
+    end
+
+    subgraph AUDIT["Audit — Attack the Result"]
+        B1[Length Heuristic = 94.61%]
+        B2[Length-Matched = 77.78%]
+        B3[Reversed-Length = 74.90%]
+        B4[98.54% Truncation]
+        B5[Reward-Length Pearson = 0.8204]
+        B6[Step 800 vs Step 1000 Mismatch]
+    end
+
+    subgraph V2["V2 — Redesign for Reward Validity"]
+        C1[Length-Balanced Preference Data]
+        C2[Concise-Correct / Verbose-Wrong]
+        C3[Semantic Hard Negatives]
+        C4[Human Gold Set]
+        C5[768 / 1024 Context Ablations]
+        C6[Multi-Seed Validation]
+        C7[Ranking-Aware Checkpoint Selection]
+    end
+
+    A6 --> B1
+    B1 --> B2
+    B2 --> B3
+    B3 --> B4
+    B4 --> B5
+    B5 --> B6
+    B6 --> C1
+    C1 --> C2
+    C2 --> C3
+    C3 --> C4
+    C4 --> C5
+    C5 --> C6
+    C6 --> C7
+```
+
+The point of V2 is **not** simply to push IID accuracy higher. A better V2 model may have similar IID accuracy while showing materially stronger controlled-challenge performance, lower reward-length dependence, lower truncation, and better multi-seed stability.
 
 ---
 
@@ -146,41 +200,71 @@ Keeping this boundary explicit is intentional: the repository documents only exp
 
 ## 3. System Architecture
 
+The verified pipeline has four layers: **data**, **training**, **evaluation**, and **evidence**.
+
 ```mermaid
 flowchart LR
-    A[Preference Data Archive] --> B[Split Extraction]
-    B --> C[Schema Validation]
-    C --> D[GPU Preflight]
-    D --> E[8B Base Reward Model]
-    E --> F[4-bit NF4 QLoRA]
-    F --> G[Pairwise Reward Training]
-    G --> H[Checkpointing]
+    subgraph DATA["1. Data Layer"]
+        A[Preference Data Archive]
+        B[Train / Eval / Test Extraction]
+        C[Schema Validation]
+        D[Question / Pair Metadata]
+        A --> B --> C --> D
+    end
 
-    H --> I[Held-out Pairwise Eval]
-    H --> J[Quality-Gap Eval]
-    H --> K[5-way Ranking Eval]
-    H --> L[Shortcut Audit]
+    subgraph TRAIN["2. Training Layer"]
+        E[Skywork Reward Llama 3.1 8B]
+        F[4-bit NF4 Base Weights]
+        G[LoRA r=16 / alpha=32]
+        H[BF16 Compute]
+        I[Pairwise Logistic Loss]
+        J[Checkpoint 800 / 1000]
+        E --> F --> G --> H --> I --> J
+    end
 
-    L --> M[Length-Matched Challenge]
-    L --> N[Reversed-Length Challenge]
-    L --> O[Truncation Audit]
+    subgraph EVAL["3. Evaluation Layer"]
+        K[Frozen Pairwise Accuracy]
+        L[Quality-Gap Analysis]
+        M[5-way Ranking]
+        N[Length-Matched Challenge]
+        O[Reversed-Length Challenge]
+        P[Truncation / Length Audit]
+        Q[Checkpoint Comparison]
+    end
 
-    I --> P[Checkpoint Analysis]
+    subgraph EVIDENCE["4. Evidence Layer"]
+        R[JSON / CSV Summaries]
+        S[Training & Eval Figures]
+        T[CI / Unit Tests]
+        U[README / Public Results]
+    end
+
+    D --> E
+    J --> K
+    J --> L
+    J --> M
+    J --> N
+    J --> O
     J --> P
-    K --> P
-    M --> P
-    N --> P
-    O --> P
+    J --> Q
 
-    P --> Q[Public Results / Evidence]
+    K --> R
+    L --> R
+    M --> R
+    N --> R
+    O --> R
+    P --> R
+    Q --> R
+    R --> S --> U
+    T --> U
 ```
 
-The public repository separates the pipeline into four logical layers:
+### Layer responsibilities
 
-1. **Data layer** — extract and validate pairwise preference records.
-2. **Training layer** — load the base Reward Model, configure QLoRA, train with pairwise loss, and save checkpoints.
-3. **Evaluation layer** — evaluate IID pairwise performance, quality gaps, full rankings, and robustness challenges.
-4. **Evidence layer** — retain lightweight metrics, figures, configuration files, and audit summaries for reproducibility.
+1. **Data layer** — extract and validate pairwise preference records and preserve metadata needed for audits.
+2. **Training layer** — load the base Reward Model, configure QLoRA, optimize pairwise reward loss, and retain checkpoints.
+3. **Evaluation layer** — evaluate IID pairwise performance, quality gaps, listwise ranking, robustness challenges, truncation, and checkpoint behavior.
+4. **Evidence layer** — retain lightweight metrics, figures, configs, tests, and machine-readable summaries for reproducibility.
 
 ---
 

@@ -1,0 +1,126 @@
+# ============================================================
+# Python
+# ============================================================
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ============================================================
+# IDE / OS
+# ============================================================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ============================================================
+# Secrets
+# ============================================================
+.env
+.env.*
+*.pem
+*.key
+*.crt
+credentials*
+secrets*
+
+# ============================================================
+# Local models / model weights
+# ============================================================
+/models/
+checkpoints/
+
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.onnx
+
+# ============================================================
+# Training outputs
+# ============================================================
+/outputs/
+/logs/
+wandb/
+
+# ============================================================
+# Raw / generated datasets
+# Public examples will be added separately later
+# ============================================================
+/data/
+
+# ============================================================
+# Experiment runtime reports
+# Some lightweight validated results will later be copied
+# into docs/results/ for GitHub
+# ============================================================
+/reports/
+
+# ============================================================
+# Local backups / archives
+# ============================================================
+/backups/
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.7z
+
+# ============================================================
+# Temporary / cache files
+# ============================================================
+*.tmp
+*.temp
+*.log
+.cache/
+tmp/
+temp/
+
+# ============================================================
+# Jupyter
+# ============================================================
+.ipynb_checkpoints/
+
+# ============================================================
+# Private course/source mapping
+# ============================================================
+docs/course-source/
+
+# ============================================================
+# Design drafts / unvalidated future runtime
+# Keep locally, do not publish as completed functionality
+# ============================================================
+openspec/
+
+configs/agentic_rl/
+configs/ray/
+configs/training/deepspeed_zero3.json
+
+scripts/start_ray_reward_service.sh
+
+src/financial_reward_rl/agentic_eval.py
+src/financial_reward_rl/serve.py
+src/financial_reward_rl/risk.py
+
+# ============================================================
+# Internal experiment tooling pending portability cleanup
+# ============================================================
+amd_checkpoint_compare.py
+configs/training/reward_model.json
+
+src/financial_reward_rl/experiment_finalizer.py
+src/financial_reward_rl/experiment_runner.py
+src/financial_reward_rl/final_gpu_harvest.py
+src/financial_reward_rl/formal_progress_dashboard.py
+src/financial_reward_rl/formal_training_runner.py
+src/financial_reward_rl/report_readiness_audit.py
+src/financial_reward_rl/run_formal_experiment.py

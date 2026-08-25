@@ -1,0 +1,60 @@
+{
+  "formal_experiment": {
+    "hardware": "NVIDIA A10 23GB",
+    "training_method": "4-bit NF4 QLoRA with BF16 compute",
+    "optimizer_steps": 1000,
+    "effective_batch_size": 8,
+    "wall_clock": "03:18:51",
+    "mean_gpu_utilization": 0.9773,
+    "peak_training_vram_gb": 11.85,
+    "train_pairs_available": 35990,
+    "approx_pair_instances_processed": 8000
+  },
+  "frozen_test": {
+    "independent_questions": 451,
+    "preference_pairs": 4510,
+    "unique_responses": 2255,
+    "base_pairwise_accuracy": 0.5042,
+    "finetuned_pairwise_accuracy": 0.9135,
+    "delta_percentage_points": 40.93
+  },
+  "ranking": {
+    "kendall_tau": 0.8828,
+    "ndcg_at_5": 0.9474,
+    "perfect_5way": 0.5787,
+    "level5_top1": 0.6386,
+    "level1_bottom1": 0.9557
+  },
+  "shortcut_audit": {
+    "longer_answer_heuristic_accuracy": 0.9461,
+    "length_matched": {
+      "base": 0.4956,
+      "finetuned": 0.7778
+    },
+    "reversed_length": {
+      "base": 0.4770,
+      "finetuned": 0.7490
+    },
+    "overall_truncation_rate": 0.9854,
+    "reward_token_length_pearson": 0.8204,
+    "residualized_reward_token_length_pearson": 0.5791
+  },
+  "checkpoint_control": {
+    "trainer_selected_checkpoint": 800,
+    "step800_eval_loss": 0.11339,
+    "step1000_eval_loss": 0.13200,
+    "amd_bf16_step800_pairwise_accuracy": 0.9220,
+    "amd_bf16_step1000_pairwise_accuracy": 0.9264,
+    "step800_vs_step1000_pair_ranking_disagreements": 84
+  },
+  "claim_boundary": {
+    "primary_resume_metric": "50.42% -> 91.35% on frozen A10 held-out evaluation",
+    "not_claimed_as_completed": [
+      "GRPO",
+      "PPO",
+      "multi-node training",
+      "multi-GPU distributed training",
+      "production reward-service benchmarking"
+    ]
+  }
+}

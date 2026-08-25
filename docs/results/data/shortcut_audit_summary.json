@@ -1,0 +1,53 @@
+{
+  "status": "completed",
+  "audit_type": "reward_model_shortcut_robustness_audit",
+  "created_at": "2026-08-25T06:02:08.037403+08:00",
+  "full_iid_test": {
+    "records": 4510,
+    "unique_questions": 451,
+    "base_pairwise_accuracy": 0.5042128603104213,
+    "finetuned_pairwise_accuracy": 0.9135254988913526,
+    "accuracy_delta": 0.40931263858093125,
+    "base_mean_reward_margin": 0.48672588881262124,
+    "finetuned_mean_reward_margin": 11.283924611973392
+  },
+  "length_bias_audit": {
+    "longer_answer_heuristic_accuracy_test": 0.9461,
+    "finding": "The original preference dataset contains a strong correlation between response length and quality label."
+  },
+  "length_matched_10pct_challenge": {
+    "records": 450,
+    "unique_questions": 340,
+    "selection_rule": "relative chosen/rejected length difference <= 10%",
+    "gap_distribution": {
+      "1": 442,
+      "2": 8
+    },
+    "base_pairwise_accuracy": 0.4955555555555556,
+    "finetuned_pairwise_accuracy": 0.7777777777777778,
+    "accuracy_delta": 0.2822222222222222,
+    "base_mean_reward_margin": 0.050233561197916665,
+    "finetuned_mean_reward_margin": 4.213333333333333
+  },
+  "reversed_length_challenge": {
+    "records": 239,
+    "unique_questions": 205,
+    "selection_rule": "chosen response is shorter than rejected response",
+    "gap_distribution": {
+      "1": 239
+    },
+    "length_only_heuristic_accuracy": 0.0,
+    "base_pairwise_accuracy": 0.4769874476987448,
+    "finetuned_pairwise_accuracy": 0.7489539748953975,
+    "accuracy_delta": 0.2719665271966527,
+    "base_mean_reward_margin": -0.1983177791579498,
+    "finetuned_mean_reward_margin": 3.6814853556485354
+  },
+  "validated_conclusion": {
+    "engineering_training": "successful",
+    "iid_improvement": "successful",
+    "semantic_preference_learning": "supported by challenge evaluations",
+    "dataset_issue": "significant length bias exists in V1 preference protocol",
+    "claim_boundary": "The 91.35% IID accuracy must not be interpreted alone as unbiased semantic preference accuracy. Controlled challenge sets show that the fine-tuned model retains substantial ranking ability after suppressing or reversing the length shortcut."
+  }
+}

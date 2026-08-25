@@ -1,0 +1,42 @@
+{
+  "training_mode": "qlora_4bit",
+  "train_file": "data/preferences/train.jsonl",
+  "eval_file": "data/preferences/eval_monitor_400.jsonl",
+  "output_dir": "outputs/formal-financial-rm-qlora-8b",
+  "trust_remote_code": true,
+  "torch_dtype": "bfloat16",
+  "bf16": true,
+  "max_length": 512,
+  "lora_rank": 16,
+  "lora_alpha": 32,
+  "lora_dropout": 0.05,
+  "lora_target_modules": [
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj",
+    "gate_proj",
+    "up_proj",
+    "down_proj"
+  ],
+  "lora_modules_to_save": [
+    "score"
+  ],
+  "learning_rate": 0.0001,
+  "num_train_epochs": 1,
+  "max_steps": 1000,
+  "weight_decay": 0.01,
+  "warmup_ratio": 0.05,
+  "max_grad_norm": 1.0,
+  "seed": 42,
+  "tf32": true,
+  "per_device_train_batch_size": 8,
+  "per_device_eval_batch_size": 8,
+  "gradient_accumulation_steps": 1,
+  "logging_steps": 10,
+  "save_steps": 100,
+  "save_total_limit": 2,
+  "eval_steps": 100,
+  "early_stopping_patience": 20,
+  "gradient_checkpointing": true
+}

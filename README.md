@@ -1,5 +1,10 @@
 # Reward Modeling & Preference Learning
 
+[![CI](https://github.com/Benjamindaoson/reward-modeling-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/Benjamindaoson/reward-modeling-lab/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](pyproject.toml)
+[![QLoRA](https://img.shields.io/badge/Post--Training-4--bit%20QLoRA-6f42c1.svg)](docs/results/README.md)
+
 An auditable **8B Reward Model post-training project** covering pairwise preference learning, 4-bit QLoRA, robust evaluation, shortcut auditing, and checkpoint analysis.
 
 The first domain case is financial question answering.
@@ -56,14 +61,35 @@ The trainer selected Step 800 because it had the lowest validation loss, but a l
 
 This demonstrates that **lowest validation loss is not necessarily the best downstream ranking checkpoint**.
 
+## Architecture
+
+```mermaid
+flowchart LR
+    A[Preference Data] --> B[Data Validation]
+    B --> C[4-bit NF4 QLoRA]
+    C --> D[8B Reward Model]
+    D --> E[Held-out Pairwise Evaluation]
+    D --> F[5-way Ranking Evaluation]
+    D --> G[Shortcut Audit]
+    G --> H[Length-Matched Challenge]
+    G --> I[Reversed-Length Challenge]
+    E --> J[Checkpoint Analysis]
+    F --> J
+    H --> J
+    I --> J
+    J --> K[Evidence & Result Artifacts]
+```
+
+The public V1 repository separates the **verified training path** from the **evaluation and audit path**. Model quality is judged by more than IID accuracy: pairwise performance, listwise ranking, shortcut robustness, truncation behavior, and checkpoint-selection behavior are all retained as first-class evidence.
+
 ## Repository Structure
 
 ```text
-configs/training/      Training and profiling configs
-scripts/               Single-GPU execution scripts
+configs/training/         Training and profiling configs
+scripts/                  Single-GPU execution scripts
 src/financial_reward_rl/  Reward Model training and evaluation code
-tests/                 Unit and QLoRA tests
-docs/results/          Verified results, figures, and audit summaries
+tests/                    Unit and QLoRA tests
+docs/results/             Verified results, figures, and audit summaries
 ```
 
 ## Installation
@@ -100,5 +126,9 @@ See **[docs/results/README.md](docs/results/README.md)** for training curves, ra
 ## Verified Scope
 
 The public V1 repository reports only experiments that were actually executed. Policy optimization, distributed training, and production serving are outside the verified V1 scope.
+
+## License
+
+Released under the [MIT License](LICENSE).
 
 > **Core lesson:** Reward Modeling is not only about minimizing pairwise loss. It is about verifying that the learned reward function actually rewards the behavior we intend.

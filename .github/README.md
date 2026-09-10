@@ -1,99 +1,145 @@
-<div align="center">
+<p align="center">
+  <img src="./assets/hero.svg" alt="Reward Modeling Lab — auditable 8B post-training" width="100%" />
+</p>
 
-# Reward Modeling Lab
-
-### Auditable 8B LLM Post-training & Reward-Function Evaluation
-
-**Train the reward model, then attack the result to determine what the model actually learned.**
-
-`8B Reward Model` · `4-bit QLoRA` · `Pairwise Preference Learning` · `Ranking Eval` · `Shortcut Audit`
-
-[Full Research README](../README.md) · [Results](../docs/results/) · [Training Configs](../configs/training/) · [Tests](../tests/)
-
-</div>
+<p align="center">
+  <a href="../README.md"><b>Full Research README</b></a> ·
+  <a href="../docs/results/"><b>Results</b></a> ·
+  <a href="../configs/training/"><b>Training Configs</b></a> ·
+  <a href="../tests/"><b>Tests</b></a>
+</p>
 
 ---
 
-## Key Result
+## The result is not the point. The audit is.
 
-A real single-GPU post-training run was completed on **Skywork Reward Llama 3.1 8B** using an **NVIDIA A10 23GB**, 4-bit NF4 QLoRA and BF16 compute.
+The initial fine-tuned reward model reached **91.35%** frozen held-out pairwise accuracy. But a trivial **“prefer the longer response”** heuristic reached **94.61%** on the original V1 test distribution.
 
-| Evaluation | Base | Fine-tuned / measured result |
+That changed the project from a training demo into a reward-function investigation:
+
+<table>
+<tr>
+<td width="33%" valign="top">
+
+### 01 · Train
+
+**Skywork Reward Llama 3.1 8B**
+
+Single **NVIDIA A10 23GB** · 4-bit NF4 QLoRA · BF16 · **1,000 optimizer steps**.
+
+</td>
+<td width="33%" valign="top">
+
+### 02 · Attack
+
+**Challenge the shortcut**
+
+Length-matched, reversed-length, truncation, reward-length correlation and checkpoint tests.
+
+</td>
+<td width="33%" valign="top">
+
+### 03 · Verify
+
+**Measure ranking behavior**
+
+Kendall **τ = 0.8828** · NDCG@5 **= 0.9474** · controlled pairwise challenge sets.
+
+</td>
+</tr>
+</table>
+
+---
+
+## Results that survived deeper inspection
+
+| Evaluation | Base | Fine-tuned / measured |
 |---|---:|---:|
-| Frozen held-out pairwise accuracy | **50.42%** | **91.35%** |
-| Length-matched challenge | 49.56% | **77.78%** |
-| Reversed-length challenge | 47.70% | **74.90%** |
-| 5-way ranking — Kendall τ | — | **0.8828** |
-| 5-way ranking — NDCG@5 | — | **0.9474** |
+| **Frozen held-out pairwise** | 50.42% | **91.35%** |
+| **Length-matched challenge** | 49.56% | **77.78%** |
+| **Reversed-length challenge** | 47.70% | **74.90%** |
+| **Kendall τ · 5-way ranking** | — | **0.8828** |
+| **NDCG@5 · 5-way ranking** | — | **0.9474** |
 
-The headline accuracy was **not accepted at face value**: a trivial “prefer the longer response” heuristic reached **94.61%** on the original V1 test distribution. That triggered a second phase of controlled evaluation for shortcut dependence, ranking validity, truncation and checkpoint behavior.
+> **Interpretation:** the model clearly learned useful preference signal, but the original distribution also contained a strong exploitable length shortcut. The project therefore reports both the improvement **and** the failure mode.
 
-## Research Loop
+---
+
+## Research loop
 
 ```mermaid
 flowchart LR
-    DATA[Preference Data] --> TRAIN[8B QLoRA Training]
-    TRAIN --> IID[Frozen IID Evaluation]
-    IID --> ATTACK[Shortcut Attack]
-    ATTACK --> DIAG[Diagnose Bias / Truncation]
-    DIAG --> CHALLENGE[Controlled Challenge Sets]
-    CHALLENGE --> RANK[Ranking Evaluation]
-    RANK --> REDESIGN[V2 Data + Eval Redesign]
+    A[Preference Data] --> B[8B QLoRA Training]
+    B --> C[Frozen Eval]
+    C --> D[Shortcut Attack]
+    D --> E[Controlled Challenges]
+    E --> F[Ranking Audit]
+    F --> G[V2 Data / Eval Redesign]
 ```
 
-The project is intentionally organized around:
+**Train → Attack → Diagnose → Redesign** is the organizing principle of the repository.
 
-> **Train → Attack → Diagnose → Redesign**
+---
 
-rather than “train once and report the best score.”
+## Evidence bundle
 
-## Evidence — what is actually completed
-
-| Evidence | Verified scope |
+| What is actually completed | Evidence scope |
 |---|---|
-| Real GPU training | 8B model, single A10 23GB, 1,000 optimizer steps |
-| Preference data | 35,990 available training pairs; formal run processed ~8,000 pair instances |
-| Frozen test | 451 questions, 4,510 comparisons, 2,255 unique responses |
-| Reward audit | length shortcut, length-matched and reversed-length challenges |
-| Ranking audit | Kendall τ, NDCG@5, perfect 5-way ranking |
-| Context audit | truncation and reward-length correlation analysis |
-| Checkpoint audit | step-800 vs step-1000 behavioral comparison |
-| Reproducibility | versioned configs, machine-readable result artifacts, CI / tests |
+| **Real GPU training** | 8B model · single A10 23GB · 1,000 optimizer steps |
+| **Preference data** | 35,990 available training pairs · formal run processed ~8,000 pair instances |
+| **Frozen test** | 451 questions · 4,510 comparisons · 2,255 unique responses |
+| **Shortcut audit** | length heuristic · matched-length · reversed-length challenges |
+| **Ranking audit** | Kendall τ · NDCG@5 · perfect 5-way ranking |
+| **Context audit** | truncation behavior · reward/full-token-length correlation |
+| **Checkpoint audit** | step-800 vs step-1000 behavior |
+| **Reproducibility** | versioned configs · machine-readable results · CI / tests |
 
-### Explicitly not claimed as completed
+<p align="center">
+  <img src="https://img.shields.io/badge/8B-Reward%20Model-7C3AED?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/4--bit-QLoRA-8B5CF6?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Single%20GPU-A10%2023GB-4F46E5?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Focus-Reward%20Audit-A855F7?style=for-the-badge" />
+</p>
 
-`GRPO` · `PPO` · multi-node training · multi-GPU distributed training · production RM serving benchmarks · online RL deployment
-
-That boundary is deliberate: the repository distinguishes **executed experiments** from future work.
+---
 
 ## Architecture
 
 ```mermaid
 flowchart LR
     A[Preference Archive] --> B[Schema / Split Validation]
-    B --> C[4-bit QLoRA Training]
+    B --> C[QLoRA Training]
     C --> D[Checkpoints]
-    D --> E[Frozen Pairwise Eval]
-    D --> F[5-way Ranking]
+    D --> E[Pairwise Eval]
+    D --> F[Ranking Eval]
     D --> G[Shortcut Challenges]
-    D --> H[Truncation / Length Audit]
-    D --> I[Checkpoint Comparison]
-    E & F & G & H & I --> J[JSON / CSV / Figures]
-    J --> K[Auditable Research Evidence]
+    D --> H[Context / Length Audit]
+    E & F & G & H --> I[JSON / CSV / Figures]
+    I --> J[Auditable Evidence]
 ```
-
-## Quick Start
-
-The formal run configuration is frozen in:
-
-[`configs/training/formal_gpu_qlora_1000_final.json`](../configs/training/formal_gpu_qlora_1000_final.json)
-
-For environment setup, preference-data preparation, exact training commands, evaluation commands and artifact policy, use the **[full research README](../README.md)**.
 
 ---
 
-<div align="center">
+## Reproduce the formal run
 
-**A reward model is useful only if its reward function survives adversarial inspection.**
+The frozen training configuration is:
 
-</div>
+[`configs/training/formal_gpu_qlora_1000_final.json`](../configs/training/formal_gpu_qlora_1000_final.json)
+
+Use the **[full research README](../README.md)** for environment setup, data preparation, exact training/evaluation commands and artifact policy.
+
+<details>
+<summary><b>Explicitly not claimed as completed</b></summary>
+<br/>
+
+`GRPO` · `PPO` · multi-node training · multi-GPU distributed training · production RM serving benchmarks · online RL deployment
+
+The repository deliberately separates **executed experiments** from future work.
+
+</details>
+
+---
+
+<p align="center">
+  <b>A reward model is useful only if its reward survives adversarial inspection.</b>
+</p>

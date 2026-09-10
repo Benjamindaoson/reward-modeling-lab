@@ -1,0 +1,62 @@
+<svg width="1280" height="400" viewBox="0 0 1280 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="40" y1="30" x2="1240" y2="370" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#090D1A"/>
+      <stop offset="0.48" stop-color="#17143A"/>
+      <stop offset="1" stop-color="#0D1222"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="80" y1="0" x2="900" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#C4B5FD"/>
+      <stop offset="0.45" stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#60A5FA"/>
+    </linearGradient>
+    <linearGradient id="metric" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#7C3AED" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#2563EB" stop-opacity="0.10"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1110 86) rotate(138) scale(320 230)">
+      <stop stop-color="#7C3AED" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#7C3AED" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#020617" flood-opacity="0.38"/>
+    </filter>
+  </defs>
+
+  <rect x="1" y="1" width="1278" height="398" rx="28" fill="url(#bg)" stroke="#2B3150" stroke-width="2"/>
+  <rect x="1" y="1" width="1278" height="398" rx="28" fill="url(#glow)"/>
+
+  <text x="76" y="70" fill="#A5B4FC" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="15" font-weight="800" letter-spacing="2.5">LLM POST-TRAINING · REWARD MODELING · EVALUATION</text>
+  <text x="76" y="130" fill="url(#accent)" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="48" font-weight="800">Reward Modeling Lab</text>
+  <text x="76" y="171" fill="#E2E8F0" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="21" font-weight="500">Train the reward model. Attack the result. Audit what it actually learned.</text>
+
+  <g filter="url(#shadow)">
+    <rect x="76" y="214" width="520" height="118" rx="20" fill="url(#metric)" stroke="#8B5CF6" stroke-opacity="0.42"/>
+    <text x="104" y="246" fill="#C4B5FD" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="800" letter-spacing="1.6">FROZEN HELD-OUT PAIRWISE ACCURACY</text>
+    <text x="104" y="301" fill="white" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="47" font-weight="800">50.42%  →  91.35%</text>
+  </g>
+
+  <g>
+    <rect x="630" y="214" width="132" height="118" rx="18" fill="#FFFFFF" fill-opacity="0.055" stroke="#FFFFFF" stroke-opacity="0.10"/>
+    <text x="696" y="250" text-anchor="middle" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" font-weight="700">GPU</text>
+    <text x="696" y="284" text-anchor="middle" fill="white" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="22" font-weight="800">A10 23GB</text>
+    <text x="696" y="310" text-anchor="middle" fill="#A5B4FC" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" font-weight="700">single GPU</text>
+
+    <rect x="778" y="214" width="132" height="118" rx="18" fill="#FFFFFF" fill-opacity="0.055" stroke="#FFFFFF" stroke-opacity="0.10"/>
+    <text x="844" y="250" text-anchor="middle" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" font-weight="700">STEPS</text>
+    <text x="844" y="284" text-anchor="middle" fill="white" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="22" font-weight="800">1,000</text>
+    <text x="844" y="310" text-anchor="middle" fill="#A5B4FC" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" font-weight="700">optimizer</text>
+
+    <rect x="926" y="214" width="132" height="118" rx="18" fill="#FFFFFF" fill-opacity="0.055" stroke="#FFFFFF" stroke-opacity="0.10"/>
+    <text x="992" y="250" text-anchor="middle" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" font-weight="700">KENDALL τ</text>
+    <text x="992" y="284" text-anchor="middle" fill="white" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="22" font-weight="800">0.8828</text>
+    <text x="992" y="310" text-anchor="middle" fill="#A5B4FC" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" font-weight="700">5-way ranking</text>
+
+    <rect x="1074" y="214" width="132" height="118" rx="18" fill="#FFFFFF" fill-opacity="0.055" stroke="#FFFFFF" stroke-opacity="0.10"/>
+    <text x="1140" y="250" text-anchor="middle" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" font-weight="700">NDCG@5</text>
+    <text x="1140" y="284" text-anchor="middle" fill="white" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="22" font-weight="800">0.9474</text>
+    <text x="1140" y="310" text-anchor="middle" fill="#A5B4FC" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" font-weight="700">ranking quality</text>
+  </g>
+
+  <text x="76" y="370" fill="#7C8AA5" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="13" font-weight="700" letter-spacing="1.1">TRAIN  →  ATTACK  →  DIAGNOSE  →  REDESIGN</text>
+</svg>

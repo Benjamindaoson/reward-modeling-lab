@@ -37,6 +37,16 @@ The project therefore demonstrates two capabilities at once: **LLM post-training
 
 ---
 
+## Research story — why the headline metric was not enough
+
+<p align="center">
+  <img src="../docs/results/figures/research_story.webp" alt="Research story: shortcut warning, controlled challenges, and ranking audit" width="100%" />
+</p>
+
+The figure captures the central research move of the project: the **94.61% longer-response heuristic** forced the evaluation to move beyond IID pairwise accuracy, into **controlled challenge sets** and **5-way ranking audits**.
+
+---
+
 ## 1. Executive summary
 
 <table>
@@ -78,59 +88,59 @@ Longer-response heuristic reaches **94.61%** on V1.
 
 ### What was actually completed
 
-- Real 8B reward-model training on a single GPU.
-- Pairwise preference learning with frozen evaluation splits.
-- Quality-gap analysis and 5-way response ranking reconstruction.
-- Length-shortcut attack, length-matched challenge and reversed-length challenge.
-- Truncation and reward-vs-length correlation analysis.
-- Step-800 vs step-1000 checkpoint comparison.
-- Versioned configs, machine-readable result artifacts, plots, tests and CI.
-
-The domain case used for V1 is financial QA, but the public training/evaluation design is built around a generic pairwise preference contract rather than a finance-specific API.
-
----
-
-## 2. Why this project exists
-
-A reward model receives a prompt and response and produces a scalar score:
-
-```text
-reward(question, answer) → score
-```
-
-For a preference pair:
-
-```text
-(question, chosen, rejected)
-```
-
-we want:
-
-```text
-reward(question, chosen) > reward(question, rejected)
-```
-
-The training objective is the standard pairwise logistic loss:
-
-```text
-L = -log sigmoid(r_chosen - r_rejected)
-```
-
-Training this objective is straightforward. **Knowing what the learned reward function actually represents is not.**
-
-A model can obtain strong pairwise accuracy for the wrong reason by exploiting artifacts such as response length, formatting, templates or synthetic-data regularities. That matters because the reward model may later be used for **Best-of-N selection, candidate ranking, data filtering, policy optimization or agent/trajectory scoring**.
-
-A biased reward function can therefore become a biased optimization target.
-
-This repository treats evaluation as part of the model itself: the model is not considered trustworthy until its behavior has been tested under controlled distribution changes.
+- Real 8B single-GPU reward-model training
+- 4-bit NF4 QLoRA + BF16 compute
+- frozen pairwise evaluation
+- quality-gap analysis
+- 5-way ranking reconstruction
+- length-matched and reversed-length challenge sets
+- truncation and reward-length correlation audits
+- step-800 vs step-1000 checkpoint comparison
+- versioned configs, result artifacts, tests and CI
 
 ---
 
-## 3. Experiment contract
+## 2. Training setup
 
-### Data contract
+The formal V1 run uses the frozen configuration in [`configs/training/formal_gpu_qlora_1000_final.json`](../configs/training/formal_gpu_qlora_1000_final.json).
 
-The public core uses a minimal pairwise schema:
+| Component | Configuration |
+|---|---|
+| Base model | Skywork Reward Llama 3.1 8B |
+| Training mode | 4-bit QLoRA |
+| Quantization | NF4 + double quantization |
+| Compute | BF16 · TF32 enabled |
+| LoRA | r=16 · alpha=32 · dropout=0.05 |
+| Learning rate | 1e-4 |
+| Max steps | 1,000 |
+| Batch size | 8 |
+| Gradient accumulation | 1 |
+| Max length | 512 |
+| Seed | 42 |
+| Gradient checkpointing | enabled |
+
+The LoRA adapters target attention and MLP projections, while the reward `score` head is saved explicitly with the adapter state.
+
+### Formal GPU run
+
+- **Hardware:** NVIDIA A10 23GB
+- **Wall-clock:** ~3h18m
+- **Mean GPU utilization:** ~97.7%
+- **Peak allocated training VRAM:** ~11.85GB
+- **Optimizer steps:** 1,000
+- **Training pairs available:** 35,990
+- **Approximate pair instances processed in the fixed-step run:** ~8,000
+
+<p align="center">
+  <img src="../docs/results/figures/training_loss.png" alt="Training loss" width="48%" />
+  <img src="../docs/results/figures/training_pairwise_accuracy.png" alt="Training pairwise accuracy" width="48%" />
+</p>
+
+---
+
+## 3. Data contract
+
+Each preference record follows the minimal pairwise contract:
 
 ```json
 {
@@ -140,113 +150,65 @@ The public core uses a minimal pairwise schema:
 }
 ```
 
-Additional metadata such as question ID, response quality level and quality gap is retained where needed for ranking reconstruction and diagnostic analysis.
+The V1 data also carries question IDs, response quality levels and quality-gap metadata so the same preference data can support pairwise evaluation, ranking reconstruction and controlled audits.
 
-### Data scale
+### Scale
 
-| View | Scale |
+| View | Size |
 |---|---:|
-| Training questions | **3,599** |
+| Training questions | 3,599 |
 | Available training preference pairs | **35,990** |
-| Pair instances processed by the fixed 1,000-step run | **~8,000** |
 | Frozen test questions | **451** |
 | Frozen pairwise comparisons | **4,510** |
 | Unique test responses | **2,255** |
 
-The full/raw training corpus is intentionally not distributed in the public repository. Public artifacts focus on code, configs, evaluation logic and verified results.
+The public repository does not distribute the raw private training data; it exposes the contract, loaders, configs, metrics and reproducible evaluation logic.
 
 ---
 
-## 4. Formal training configuration
+## 4. Reward-model objective
 
-The frozen configuration is stored at:
+For each pair `(question, chosen, rejected)`, the reward model outputs:
 
-[`configs/training/formal_gpu_qlora_1000_final.json`](../configs/training/formal_gpu_qlora_1000_final.json)
+```text
+r_chosen   = RM(question, chosen)
+r_rejected = RM(question, rejected)
+```
 
-| Component | Setting |
-|---|---|
-| Base model | Skywork Reward Llama 3.1 8B |
-| Training mode | `qlora_4bit` |
-| Quantization | 4-bit NF4 + double quantization |
-| Compute dtype | BF16 |
-| TF32 | Enabled |
-| Max sequence length | 512 |
-| LoRA rank | 16 |
-| LoRA alpha | 32 |
-| LoRA dropout | 0.05 |
-| Learning rate | 1e-4 |
-| Max steps | 1,000 |
-| Train batch size | 8 |
-| Gradient accumulation | 1 |
-| Weight decay | 0.01 |
-| Warmup ratio | 0.05 |
-| Gradient checkpointing | Enabled |
-| Seed | 42 |
-| Save / eval interval | every 100 steps |
+Training minimizes the pairwise logistic loss:
 
-LoRA is applied to attention and MLP projection modules (`q/k/v/o`, `gate/up/down`), while the reward `score` head is explicitly saved with the adapter.
+```text
+L = -log sigmoid(r_chosen - r_rejected)
+```
 
-### Resource profile
+The important quantity is therefore the **reward difference**, not whether the absolute reward is positive or negative.
 
-| Runtime signal | Observed value |
+---
+
+## 5. Frozen held-out result
+
+The first headline result is strong:
+
+| Model | Pairwise Accuracy |
 |---|---:|
-| Wall-clock time | **~3h18m** |
-| Mean GPU utilization | **~97.7%** |
-| Peak allocated training VRAM | **~11.85 GB** |
-| GPU | **NVIDIA A10 23GB** |
+| Base Reward Model | 50.42% |
+| Fine-tuned Reward Model | **91.35%** |
 
-This was intentionally designed as a **single-GPU reproducible experiment**, not a distributed-training benchmark.
-
----
-
-## 5. Training behavior
-
-<table>
-<tr>
-<td width="50%" valign="top">
-
-<img src="../docs/results/figures/training_loss.png" alt="Training loss" width="100%" />
-
-</td>
-<td width="50%" valign="top">
-
-<img src="../docs/results/figures/training_pairwise_accuracy.png" alt="Training pairwise accuracy" width="100%" />
-
-</td>
-</tr>
-</table>
-
-The training run converged cleanly, while monitor-set accuracy entered an approximate plateau in the second half of training. The trainer selected **step 800** because it had the lowest validation loss, but later ranking analysis showed that this was not automatically the best checkpoint for every downstream metric.
-
-That checkpoint-selection mismatch becomes one of the important findings of the project rather than an implementation detail.
-
----
-
-## 6. Frozen held-out evaluation
-
-The first high-level result is straightforward:
-
-| Model | Frozen held-out pairwise accuracy |
-|---|---:|
-| Base reward model | **50.42%** |
-| Fine-tuned reward model | **91.35%** |
-| Absolute improvement | **+40.93 pp** |
+**Absolute improvement: +40.93 percentage points.**
 
 <p align="center">
-  <img src="../docs/results/figures/base_vs_finetuned_accuracy.png" alt="Base versus fine-tuned pairwise accuracy" width="68%" />
+  <img src="../docs/results/figures/base_vs_finetuned_accuracy.png" alt="Base versus fine-tuned accuracy" width="62%" />
 </p>
 
-This is strong evidence that the model adapted to the preference data. It is **not**, by itself, strong evidence that the learned reward function is semantically valid.
-
-That distinction drives the rest of the repository.
+If evaluation stopped here, the obvious conclusion would be that post-training worked extremely well. The next audit shows why that conclusion would be incomplete.
 
 ---
 
-## 7. Quality-gap analysis
+## 6. Quality-gap analysis
 
-The test set contains preference pairs with different levels of quality separation. The fine-tuned model performs better when the preferred and rejected responses are easier to distinguish.
+The model becomes more accurate as the quality difference between preferred and rejected answers increases.
 
-| Quality gap | Base | Fine-tuned |
+| Quality Gap | Base | Fine-tuned |
 |---:|---:|---:|
 | 1 | 48.73% | **85.64%** |
 | 2 | 50.85% | **94.60%** |
@@ -254,16 +216,54 @@ The test set contains preference pairs with different levels of quality separati
 | 4 | 52.77% | **95.79%** |
 
 <p align="center">
-  <img src="../docs/results/figures/quality_gap_accuracy.png" alt="Accuracy by quality gap" width="68%" />
+  <img src="../docs/results/figures/quality_gap_accuracy.png" alt="Quality gap accuracy" width="62%" />
 </p>
 
-This matters because a single aggregate accuracy hides whether the model can distinguish **subtle preference differences** or only obvious ones.
+This shows that the model learned useful preference signal, but does not yet tell us **which features** it relied on to make those decisions.
 
 ---
 
-## 8. Ranking evaluation: pairwise accuracy is not enough
+## 7. Shortcut audit — the turning point
 
-The 451 frozen test questions were reconstructed as **5-way ranking problems**. This turns the evaluation from “can the model choose between two responses?” into “can the model order multiple responses consistently?”
+A trivial heuristic that **always chooses the longer response** reaches:
+
+# **94.61%**
+
+on the original V1 preference distribution.
+
+That is higher than the fine-tuned model's 91.35% IID pairwise score.
+
+This does **not** mean the model learned nothing. It means the original distribution contains a major confounder: response length is highly predictive of the preferred label. The experiment therefore needed controls that deliberately break that correlation.
+
+### Length-matched challenge
+
+Response length is approximately controlled between chosen and rejected answers.
+
+| Model | Accuracy |
+|---|---:|
+| Base | 49.56% |
+| Fine-tuned | **77.78%** |
+
+### Reversed-length challenge
+
+Every preferred response is shorter than its rejected counterpart.
+
+| Model | Accuracy |
+|---|---:|
+| Base | 47.70% |
+| Fine-tuned | **74.90%** |
+
+### Interpretation
+
+The model still performs far above the base model when the easy length cue is neutralized or reversed. Therefore it **did learn real preference signal**. But the performance drop also shows that the fine-tuned reward function relied materially on shortcut features present in V1.
+
+This is the central empirical conclusion of the repository.
+
+---
+
+## 8. Ranking audit
+
+Pairwise accuracy only asks whether one response beats another. A reward model is often used to rank multiple candidates, so the 451 held-out questions were reconstructed as **5-way ranking problems**.
 
 | Ranking metric | Result |
 |---|---:|
@@ -273,56 +273,11 @@ The 451 frozen test questions were reconstructed as **5-way ranking problems**. 
 | Level-5 response ranked first | **63.86%** |
 | Level-1 response ranked last | **95.57%** |
 
-These metrics expose structure that pairwise accuracy cannot. A reward model can win many independent pairs while still producing a poor global ordering, especially when differences between middle-quality responses are small.
+The ranking results show that the model learned a strong global ordering signal, while also exposing behavior that pairwise accuracy alone cannot reveal.
 
 ---
 
-## 9. Shortcut audit: the headline metric fails a simple attack
-
-The strongest diagnostic finding in V1 is the response-length artifact.
-
-A trivial heuristic:
-
-```text
-choose the longer response
-```
-
-achieves:
-
-```text
-94.61% pairwise accuracy
-```
-
-on the original V1 distribution — **higher than the fine-tuned model's 91.35% IID result**.
-
-That does not mean the reward model learned nothing. It means the original distribution provides an easy shortcut that a model can exploit alongside useful semantic signals.
-
-### Controlled challenge sets
-
-To separate semantic preference learning from length dependence, two challenge sets were introduced.
-
-| Evaluation | Base | Fine-tuned |
-|---|---:|---:|
-| Length-matched challenge | 49.56% | **77.78%** |
-| Reversed-length challenge | 47.70% | **74.90%** |
-
-In the reversed-length set, every preferred response is **shorter** than its rejected counterpart. The fine-tuned model still performs substantially above chance, which supports the conclusion that it learned meaningful preference signal — but not without shortcut dependence.
-
-### Interpretation
-
-```text
-High IID accuracy
-      │
-      ├── useful semantic preference learning  ✓
-      │
-      └── exploitable response-length artifact ✓
-```
-
-The correct conclusion is therefore not “91.35% semantic accuracy.” The correct conclusion is: **V1 learned useful preference structure under a biased data distribution, and the bias is measurable.**
-
----
-
-## 10. Truncation and reward-length dependence
+## 9. Truncation and reward-length audit
 
 The formal V1 configuration used:
 
@@ -330,186 +285,189 @@ The formal V1 configuration used:
 max_length = 512
 ```
 
-A later token-length audit found that approximately **98.54% of the 2,255 unique test responses were truncated** under this context length.
+A later audit found that approximately **98.54%** of the 2,255 unique test responses were truncated at that context limit.
 
-The relationship between reward and full response length was also strong:
+Reward also correlates strongly with full response length:
 
-| Diagnostic | Result |
-|---|---:|
-| Reward vs full token length · Pearson | **~0.820** |
-| Quality-level residualized Pearson | **~0.579** |
+- **Pearson correlation:** ~0.820
+- **Quality-level residualized Pearson:** ~0.579
 
-This creates an important confound: the model is being asked to judge long answers while seeing only their first 512 tokens, and the data distribution itself strongly correlates length with preference.
-
-V1 therefore treats context length as an **experimental-design limitation**, not merely a throughput parameter.
+These findings turn context length and length dependence into explicit V1 limitations rather than hidden implementation details.
 
 ---
 
-## 11. Checkpoint selection audit
+## 10. Checkpoint-selection audit
 
-The trainer selected step 800 because it had the lowest monitor-set evaluation loss:
+The training loop selected step 800 because it had the lowest validation loss:
 
-| Checkpoint | Eval loss |
+| Checkpoint | Eval Loss |
 |---|---:|
 | Step 800 | **0.11339** |
 | Step 1000 | 0.13200 |
 
-But a later controlled BF16 evaluation on the same 2,255 responses found:
+A later controlled BF16 evaluation on the same 2,255 responses found:
 
-| Checkpoint | Pairwise accuracy |
+| Checkpoint | Pairwise Accuracy |
 |---|---:|
 | Step 800 | 92.20% |
 | Step 1000 | **92.64%** |
 
-Step 1000 was also slightly stronger on NDCG@5 and perfect 5-way ranking, while step 800 retained slightly stronger rank-correlation behavior.
+Step 1000 was also slightly stronger on NDCG@5 and perfect 5-way ranking, while step 800 retained slightly stronger rank-correlation metrics.
 
-The implication is practical:
-
-> **Lowest validation loss is not automatically the best checkpoint for downstream reward-model behavior.**
-
-Checkpoint selection should therefore be tied to the behavior the reward model is expected to support, not a single scalar monitor metric.
+**Lesson:** lowest validation loss is not guaranteed to select the checkpoint with the best downstream ranking behavior.
 
 ---
 
-## 12. Evaluation stack
+## 11. Evaluation stack
 
 ```mermaid
-flowchart TD
-    A[Preference Data] --> B[8B QLoRA Training]
-    B --> C[Checkpoints]
-
-    C --> D[Frozen Pairwise Eval]
-    C --> E[Quality-Gap Analysis]
-    C --> F[5-way Ranking]
-    C --> G[Length-Matched Challenge]
-    C --> H[Reversed-Length Challenge]
-    C --> I[Truncation / Length Audit]
-    C --> J[Checkpoint Comparison]
-
-    D --> K[Result Artifacts]
-    E --> K
-    F --> K
-    G --> K
-    H --> K
-    I --> K
-    J --> K
-
-    K --> L[Reward-Function Diagnosis]
-    L --> M[V2 Data + Eval Redesign]
+flowchart LR
+    A[Preference Archive] --> B[Schema / Split Validation]
+    B --> C[4-bit QLoRA Training]
+    C --> D[Checkpoints]
+    D --> E[Frozen Pairwise Eval]
+    D --> F[Quality-Gap Analysis]
+    D --> G[5-way Ranking]
+    D --> H[Length-Matched Challenge]
+    D --> I[Reversed-Length Challenge]
+    D --> J[Truncation / Length Audit]
+    D --> K[Checkpoint Comparison]
+    E & F & G & H & I & J & K --> L[JSON / CSV / Figures]
+    L --> M[Auditable Research Evidence]
 ```
 
-The evaluation strategy deliberately expands from **IID performance** to **behavior under interventions**. The goal is not to accumulate metrics; it is to identify what causal features the reward model may be using.
+The repository is intentionally organized around:
+
+```text
+Build → Run → Measure → Attack → Diagnose → Improve
+```
+
+rather than "train once and report the best number."
 
 ---
 
-## 13. Evidence and reproducibility
+## 12. Evidence and reproducibility
 
-The repository separates claims from evidence. The public evidence surface includes:
-
-| Evidence type | What it proves |
+| Evidence | Verified scope |
 |---|---|
-| Frozen config | Exact post-training hyperparameters and run contract |
-| Training curves | Optimization behavior over the formal run |
-| Pairwise results | Base vs fine-tuned preference discrimination |
-| Ranking metrics | Multi-response ordering quality |
-| Challenge sets | Behavior when the length shortcut is controlled or reversed |
-| Truncation analysis | Context-window limitation of the formal experiment |
-| Checkpoint comparison | Metric-dependent checkpoint behavior |
-| Tests / CI | Basic code and data-contract integrity |
-| Machine-readable results | Re-analysis without relying on README prose |
+| Real GPU training | 8B model · single A10 23GB · 1,000 optimizer steps |
+| Training configuration | frozen JSON config under version control |
+| Preference data | 35,990 available pairs · ~8,000 instances processed in formal fixed-step run |
+| Frozen evaluation | 451 questions · 4,510 comparisons · 2,255 responses |
+| Robustness audit | length heuristic · matched-length · reversed-length challenges |
+| Ranking audit | Kendall τ · NDCG@5 · perfect ranking · top/bottom placement |
+| Context audit | truncation rate · reward-length correlation |
+| Checkpoint audit | step 800 vs step 1000 |
+| Public artifacts | figures · curated result tables · configs · tests · CI |
 
-### Repository map
+Public result details are collected in [`docs/results/README.md`](../docs/results/README.md).
+
+---
+
+## 13. What this project demonstrates
+
+This repository is intended to prove more than familiarity with PEFT APIs.
+
+### LLM post-training
+
+- pairwise preference learning
+- reward-model objectives
+- 4-bit QLoRA on an 8B model
+- memory-aware single-GPU training
+- checkpointing and experiment control
+
+### Evaluation and research engineering
+
+- frozen held-out evaluation
+- challenge-set construction
+- shortcut diagnosis
+- full ranking metrics
+- truncation analysis
+- checkpoint-selection analysis
+- explicit evidence / claim boundaries
+
+### Scientific behavior
+
+The most important engineering decision was to treat a suspiciously strong shortcut baseline as a **reason to invalidate the easy interpretation**, not as something to hide.
+
+---
+
+## 14. V1 limitations
+
+V1 is deliberately documented with its limitations:
+
+1. **Length confounding:** the original preference distribution strongly correlates length with quality.
+2. **Context truncation:** 512 tokens truncates ~98.54% of unique held-out responses.
+3. **Single seed:** the formal result does not yet establish multi-seed stability.
+4. **Domain case:** the first case is financial QA, so transfer to unrelated domains is not claimed.
+5. **Synthetic / generated preference artifacts:** data-generation patterns may create exploitable cues beyond length.
+6. **Checkpoint selection:** validation loss and downstream ranking metrics do not select exactly the same checkpoint.
+
+These are not footnotes; they directly define the V2 experimental agenda.
+
+---
+
+## 15. V2 roadmap
+
+V2 is designed around **reward validity**, not simply a higher IID score.
+
+| V2 intervention | Purpose |
+|---|---|
+| Length-balanced preference data | reduce length-label confounding |
+| Concise-correct vs verbose-wrong pairs | actively break the shortcut |
+| Semantic hard negatives | force content-sensitive discrimination |
+| Human-verified gold set | separate model quality from synthetic artifacts |
+| 768 / 1024 context ablation | measure truncation sensitivity |
+| Multi-seed training | test stability and variance |
+| Ranking-aware checkpoint selection | align selection with downstream RM usage |
+
+A V2 model can be scientifically better even if IID pairwise accuracy does **not** increase, provided controlled challenges, human-gold validity, context robustness and seed stability improve.
+
+---
+
+## 16. Repository map
 
 ```text
 reward-modeling-lab/
-├── configs/               # frozen training / evaluation configs
-├── src/                   # reward-model training and evaluation code
-├── scripts/               # experiment and analysis entry points
-├── docs/results/          # curated public results and figures
-├── tests/                 # unit / contract checks
-├── README.md              # complete Chinese research documentation
-├── README_EN.md           # complete English documentation
-└── .github/README.md      # this recruiter-facing project overview
+├── configs/              # frozen experiment configurations
+├── docs/
+│   └── results/          # curated public result tables and figures
+├── scripts/              # data, training and evaluation entry points
+├── src/                  # reward-modeling implementation
+├── tests/                # unit / contract tests
+├── README.md             # full Chinese research documentation
+├── README_EN.md          # full English research documentation
+└── .github/README.md     # recruiter-facing flagship landing page
 ```
 
-The landing page is intentionally concise enough to scan, while the root READMEs preserve the full experiment documentation.
-
 ---
 
-## 14. V1 → V2: what changes next
+## 17. Reproduce the formal run
 
-V2 is not defined as “make the 91.35% number larger.” It is defined as **make the reward function more defensible**.
-
-Planned redesign targets include:
-
-| V1 finding | V2 response |
-|---|---|
-| Length strongly predicts preference | Length-balanced sampling and counterexamples |
-| Verbosity can act as a shortcut | Concise-correct / verbose-wrong pairs |
-| Easy pairs inflate aggregate accuracy | Semantic hard negatives and harder quality-gap cases |
-| Synthetic preference labels need independent validation | Human-verified gold evaluation |
-| 512-token context truncates most responses | 768 / 1024 context ablations |
-| Single run cannot establish stability | Multi-seed validation |
-| Lowest eval loss may not maximize ranking quality | Ranking-aware checkpoint selection |
-
-The acceptance criterion is therefore broader than IID pairwise accuracy. A better V2 should improve **controlled challenge robustness, human-gold validity, multi-seed stability, truncation behavior and ranking quality**, even if its headline IID score changes only modestly.
-
----
-
-## 15. What this repository demonstrates
-
-This project is intended to show more than familiarity with LoRA or Hugging Face training scripts.
-
-It demonstrates an end-to-end post-training research workflow:
-
-```text
-Problem framing
-→ preference-data contract
-→ memory-constrained 8B training
-→ frozen evaluation
-→ shortcut discovery
-→ controlled counterfactual tests
-→ ranking analysis
-→ checkpoint diagnosis
-→ evidence packaging
-→ experimental redesign
-```
-
-The central engineering/research principle is:
-
-> **A reward model is not validated by the score it achieves on the distribution that trained it. It is validated by whether its reward function survives controlled attacks on the shortcuts that distribution makes available.**
-
----
-
-## 16. Reproduce and inspect
-
-Start from the frozen formal configuration:
+Start from the frozen config:
 
 [`configs/training/formal_gpu_qlora_1000_final.json`](../configs/training/formal_gpu_qlora_1000_final.json)
 
-Then use:
+For exact environment setup, data extraction, training commands, evaluation commands and artifact policy, use:
 
-- **[Chinese full README](../README.md)** for the complete experiment procedure and implementation notes.
-- **[English full README](../README_EN.md)** for the English version of the research documentation.
-- **[Verified results](../docs/results/)** for curated V1 outputs and plots.
-- **[Training configs](../configs/training/)** for versioned run contracts.
-- **[Tests](../tests/)** for code/data integrity checks.
+- **[中文完整文档](../README.md)**
+- **[Full English README](../README_EN.md)**
+- **[Verified result package](../docs/results/README.md)**
+
+---
 
 <details>
-<summary><b>Explicitly outside the completed V1 scope</b></summary>
+<summary><b>Explicitly not claimed as completed</b></summary>
 <br/>
 
-The repository does **not** claim completed:
+`GRPO` · `PPO` · multi-node training · multi-GPU distributed training · production RM serving benchmarks · online RL deployment
 
-`GRPO` · `PPO` · multi-node training · multi-GPU distributed training · production reward-model serving benchmarks · online RL deployment
-
-Those are downstream or future directions. Public claims are intentionally limited to experiments that were actually executed and packaged with supporting evidence.
+The repository deliberately separates **executed experiments** from future work.
 
 </details>
 
 ---
 
 <p align="center">
-  <b>Train the model. Attack the metric. Verify the reward.</b><br/>
-  <sub>Reward Modeling · Preference Learning · Post-training · Evaluation</sub>
+  <b>A reward model is useful only if its reward survives adversarial inspection.</b>
 </p>

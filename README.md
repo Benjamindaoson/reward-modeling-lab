@@ -37,7 +37,7 @@ Train → Evaluate → Attack → Diagnose → Controlled Challenge → Ranking 
 ## Research Story：为什么 91.35% 不是结论
 
 <p align="center">
-  <img src="./docs/results/figures/research_story.webp" alt="Research story: shortcut warning, controlled challenges, and ranking audit" width="100%" />
+  <img src="./docs/results/figures/research_story.svg" alt="Research story: shortcut warning, controlled challenges, and ranking audit" width="100%" />
 </p>
 
 这张图概括了项目最重要的研究链路：

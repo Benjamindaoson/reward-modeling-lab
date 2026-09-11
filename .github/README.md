@@ -40,7 +40,7 @@ The project therefore demonstrates two capabilities at once: **LLM post-training
 ## Research story — why the headline metric was not enough
 
 <p align="center">
-  <img src="../docs/results/figures/research_story.webp" alt="Research story: shortcut warning, controlled challenges, and ranking audit" width="100%" />
+  <img src="../docs/results/figures/research_story.svg" alt="Research story: shortcut warning, controlled challenges, and ranking audit" width="100%" />
 </p>
 
 The figure captures the central research move of the project: the **94.61% longer-response heuristic** forced the evaluation to move beyond IID pairwise accuracy, into **controlled challenge sets** and **5-way ranking audits**.

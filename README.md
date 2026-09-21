@@ -1,3 +1,6 @@
+> **Portfolio status / 作品集状态：FLAGSHIP · Model Systems**
+> Canonical independent flagship repository for reward-model post-training and audits.
+
 <p align="center">
   <img src="./.github/assets/hero.svg" alt="Reward Modeling Lab — auditable 8B post-training" width="100%" />
 </p>

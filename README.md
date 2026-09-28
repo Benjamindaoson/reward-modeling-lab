@@ -539,21 +539,47 @@ Train once → report best score → stop
 
 ---
 
-## 17. V2 Roadmap
+## 17. V2：Shortcut-Robust Reward Model
 
-V2 的目标不是继续刷高 IID Accuracy，而是提升 **Reward Validity**。
+V2 已从 Roadmap 收窄为一个可执行实验：**不是继续刷 IID Accuracy，而是直接修复 V1 已发现的 Length Shortcut。**
 
-| V2 Intervention | Purpose |
-|---|---|
-| Length-balanced preference data | 降低 length-label confounding |
-| Concise-correct / verbose-wrong pairs | 主动打破长度捷径 |
-| Semantic hard negatives | 强迫模型依赖语义质量 |
-| Human-verified gold set | 降低 synthetic artifact 风险 |
-| 768 / 1024 context ablation | 测量 truncation sensitivity |
-| Multi-seed training | 评估 stability / variance |
-| Ranking-aware checkpoint selection | 与 Reward Model 真实使用方式对齐 |
+### 当前状态
 
-一个更可信的 V2 模型，即使 IID Accuracy 没有明显超过 V1，只要在 Controlled Challenge、Human Gold、Context Robustness 与 Multi-seed Stability 上显著改善，也应被视为科学上更好的 Reward Model。
+- **实验协议与代码：已实现**
+- **8B V2 GPU 训练：尚未执行，因此不报告任何 V2 性能数字**
+
+V2 只改三件事：
+
+| Intervention | 实现 | 目的 |
+|---|---|---|
+| Length-balanced training exposure | 将训练 pair 分为 length-matched / preferred-longer / preferred-shorter 三个 strata，并确定性平衡采样 | 降低 length-label confounding |
+| Natural anti-length hard negatives | 提升“chosen 更短、rejected 更长”的已有 preference pair 暴露比例，不生成新的正确性标签 | 主动破坏 longer=preferred 捷径 |
+| 1024-token context | 512 → 1024；batch 8 → 4，gradient accumulation 1 → 2，保持 effective batch=8 | 降低严重 truncation 压力 |
+
+完整实验契约见 [V2 Shortcut Robustness](./docs/V2_SHORTCUT_ROBUSTNESS.md)。
+
+V2 的 promotion gate 不要求 IID 更高。默认要求：
+
+- IID 下降不超过 **5 pp**；
+- Length-Matched 至少提升 **5 pp**；
+- Reversed-Length 至少提升 **5 pp**。
+
+也就是说，类似下面这种结果在设计上可以优于 V1：
+
+```text
+IID:              91% -> 89%
+Reversed-Length:  75% -> 85%+
+```
+
+这里的 85%+ 只是目标示例，**不是已观测结果**。V2 只有在真实 GPU 训练和三套固定评估完成后，才允许更新 Verified Results。
+
+一键实验入口：
+
+```bash
+export PREFERENCE_DATA_ARCHIVE=/path/to/preference_data.zip
+export MODEL_PATH=models/base-reward-model
+bash scripts/run_v2_on_gpu.sh
+```
 
 ---
 

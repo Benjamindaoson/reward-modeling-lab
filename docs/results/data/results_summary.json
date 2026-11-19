@@ -1,6 +1,6 @@
 {
   "formal_experiment": {
-    "hardware": "NVIDIA A10 23GB",
+    "hardware": "NVIDIA RTX 4090 24GB (rented GPU instance)",
     "training_method": "4-bit NF4 QLoRA with BF16 compute",
     "optimizer_steps": 1000,
     "effective_batch_size": 8,
@@ -48,7 +48,7 @@
     "step800_vs_step1000_pair_ranking_disagreements": 84
   },
   "claim_boundary": {
-    "primary_resume_metric": "50.42% -> 91.35% on frozen A10 held-out evaluation",
+    "primary_resume_metric": "50.42% -> 91.35% on frozen RTX 4090 held-out evaluation",
     "not_claimed_as_completed": [
       "GRPO",
       "PPO",

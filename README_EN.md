@@ -560,7 +560,7 @@ Why this matters:
 
 A model can obtain high pairwise accuracy while still producing inconsistent global rankings. Listwise metrics expose whether the learned reward surface preserves the intended ordering across all five quality levels.
 
-The primary resume / headline metric remains the frozen A10 pairwise result **50.42% → 91.35%**; the ranking metrics are reported as complementary evidence.
+The primary resume / headline metric remains the frozen RTX 4090 pairwise result **50.42% → 91.35%**; the ranking metrics are reported as complementary evidence.
 
 ---
 

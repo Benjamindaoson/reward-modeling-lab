@@ -11,7 +11,7 @@ and local experiment archives are intentionally excluded.
 The formal run used:
 
 - Skywork Reward Llama 3.1 8B
-- NVIDIA A10 23GB
+- rented NVIDIA RTX 4090 24GB
 - 4-bit NF4 QLoRA
 - BF16 compute
 - 1,000 optimizer steps

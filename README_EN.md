@@ -15,7 +15,7 @@ The first domain case is **financial question answering**, but the public traini
 
 ## Executive Summary
 
-The verified V1 experiment fine-tunes **Skywork Reward Llama 3.1 8B** on a single **NVIDIA A10 23GB** using **4-bit NF4 QLoRA with BF16 compute**.
+The verified V1 experiment fine-tunes **Skywork Reward Llama 3.1 8B** on a single **rented NVIDIA RTX 4090 24GB** using **4-bit NF4 QLoRA with BF16 compute**.
 
 ### Headline result
 
@@ -61,7 +61,7 @@ flowchart LR
     subgraph V1["V1 — Build & Train"]
         A1[35,990 Preference Pairs] --> A2[8B Reward Model]
         A2 --> A3[4-bit NF4 QLoRA + BF16]
-        A3 --> A4[Single A10 23GB]
+        A3 --> A4[Single rented RTX 4090 24GB]
         A4 --> A5[1,000 Optimizer Steps]
         A5 --> A6[50.42% → 91.35% Pairwise]
     end
@@ -406,7 +406,7 @@ down_proj
 
 ## 7. Single-GPU Performance Engineering
 
-The formal model was trained on a **single NVIDIA A10 23GB**.
+The formal model was trained on a **single rented NVIDIA RTX 4090 24GB**.
 
 Before freezing the final batch configuration, several micro-batch / gradient-accumulation combinations were profiled while holding the effective batch size at 8.
 
@@ -434,7 +434,7 @@ The goal was not to maximize memory consumption, but to find a simple single-GPU
 
 | Metric | Value |
 |---|---:|
-| Hardware | NVIDIA A10 23GB |
+| Hardware | rented NVIDIA RTX 4090 24GB |
 | Optimizer steps | **1,000** |
 | Effective batch | 8 |
 | Approx. pair instances processed | **8,000** |

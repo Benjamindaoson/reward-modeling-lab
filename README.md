@@ -21,11 +21,26 @@
 
 # Reward Modeling & Preference Learning
 
+## CV-aligned research summary
+
+**Research focus:** Reward-model post-training, preference learning, ranking quality, and shortcut robustness.
+
+- Fine-tuned Skywork Reward Llama 3.1 8B using 4-bit NF4 QLoRA and BF16 on one rented NVIDIA RTX 4090 24GB GPU.
+- Improved frozen held-out pairwise accuracy from 50.42% to 91.35%.
+- Identified a longer-response heuristic scoring 94.61%, exceeding the fine-tuned model on the original test distribution.
+- Built length-matched and reversed-length challenge sets, ranking diagnostics, and checkpoint comparisons; challenge accuracy was 77.78% and 74.90%, respectively.
+
+**Key contribution:** The project treats reward validity and adversarial evaluation as first-class requirements rather than reporting IID pairwise accuracy alone.
+
+**Evidence boundary:** The repository does not claim completed PPO, GRPO, or online RL training.
+
+
+
 一个可审计、可复现的 **8B Reward Model 后训练与评估项目**。项目不只关心“Pairwise Accuracy 能不能训高”，而是进一步追问：
 
 > **Reward Model 到底学到了人类偏好，还是学到了一个更容易利用的数据捷径？**
 
-V1 基于 **Skywork Reward Llama 3.1 8B**，在单张 **NVIDIA A10 23GB** 上使用 **4-bit NF4 QLoRA + BF16 Compute** 完成真实 GPU 训练。冻结测试集上的 Pairwise Accuracy 从 **50.42% 提升到 91.35%**。
+V1 基于 **Skywork Reward Llama 3.1 8B**，在单张 **NVIDIA RTX 4090 24GB** 上使用 **4-bit NF4 QLoRA + BF16 Compute** 完成真实 GPU 训练。冻结测试集上的 Pairwise Accuracy 从 **50.42% 提升到 91.35%**。
 
 但随后出现了一个更重要的发现：一个极其简单的规则——**永远选择更长的回答**——在原始 V1 Test Distribution 上达到 **94.61%**。
 
@@ -70,7 +85,7 @@ Train → Evaluate → Attack → Diagnose → Controlled Challenge → Ranking 
 <td width="25%" valign="top">
 
 ### Hardware
-**1× NVIDIA A10 23GB**
+**1× NVIDIA RTX 4090 24GB**
 
 约 3h18m 正式训练。
 
@@ -265,7 +280,7 @@ Reward `score` head 会与 LoRA adapter 一起保存。
 
 正式实验运行在：
 
-- **GPU：** NVIDIA A10 23GB
+- **GPU：** NVIDIA RTX 4090 24GB
 - **Wall-clock：** ~3h18m
 - **Mean GPU Utilization：** ~97.7%
 - **Peak Allocated Training VRAM：** ~11.85GB
@@ -482,7 +497,7 @@ Train once → report best score → stop
 
 | Evidence | Verified Scope |
 |---|---|
-| Real GPU Training | 8B model · single A10 23GB · 1,000 steps |
+| Real GPU Training | 8B model · single RTX 4090 24GB · 1,000 steps |
 | Frozen Config | version-controlled JSON training contract |
 | Preference Data | 35,990 available pairs · ~8,000 processed in formal fixed-step run |
 | Frozen Test | 451 questions · 4,510 comparisons · 2,255 responses |

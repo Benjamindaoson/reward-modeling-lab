@@ -15,7 +15,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Model-8B%20Reward%20Model-7C3AED?style=flat-square" />
   <img src="https://img.shields.io/badge/Post--training-4--bit%20QLoRA-8B5CF6?style=flat-square" />
-  <img src="https://img.shields.io/badge/GPU-NVIDIA%20A10%2023GB-4F46E5?style=flat-square" />
+  <img src="https://img.shields.io/badge/GPU-NVIDIA%20RTX%204090%2024GB-4F46E5?style=flat-square" />
   <img src="https://img.shields.io/badge/Evaluation-Shortcut%20%2B%20Ranking%20Audit-A855F7?style=flat-square" />
 </p>
 
@@ -112,7 +112,7 @@ Train → Evaluate → Attack → Diagnose → Controlled Challenge → Ranking 
 ### 已真实执行的实验范围
 
 - Pairwise Reward Model Training
-- 单张 NVIDIA A10 上的 4-bit QLoRA
+- 单张租赁 NVIDIA RTX 4090 24GB 上的 4-bit QLoRA
 - Frozen Held-out Pairwise Evaluation
 - Quality-Gap Analysis
 - 5-way Ranking Reconstruction

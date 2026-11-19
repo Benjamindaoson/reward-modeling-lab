@@ -1,5 +1,18 @@
 # Reward Modeling & Preference Learning
 
+## CV-aligned research summary
+
+**Research focus:** Reward-model post-training, preference learning, ranking quality, and shortcut robustness.
+
+- Fine-tuned Skywork Reward Llama 3.1 8B using 4-bit NF4 QLoRA and BF16 on one rented NVIDIA RTX 4090 24GB GPU.
+- Improved frozen held-out pairwise accuracy from 50.42% to 91.35%.
+- Found that a longer-response heuristic scored 94.61%, exposing a shortcut in the original test distribution.
+- Added length-matched and reversed-length challenge sets, ranking diagnostics, and checkpoint comparisons; challenge accuracy was 77.78% and 74.90%.
+
+**Evidence boundary:** The project does not claim completed PPO, GRPO, or online RL training.
+
+---
+
 [**简体中文**](README.md) | **English**
 
 [![CI](https://github.com/Benjamindaoson/reward-modeling-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/Benjamindaoson/reward-modeling-lab/actions/workflows/ci.yml)

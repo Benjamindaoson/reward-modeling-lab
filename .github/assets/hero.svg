@@ -39,8 +39,8 @@
   <g>
     <rect x="630" y="214" width="132" height="118" rx="18" fill="#FFFFFF" fill-opacity="0.055" stroke="#FFFFFF" stroke-opacity="0.10"/>
     <text x="696" y="250" text-anchor="middle" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" font-weight="700">GPU</text>
-    <text x="696" y="284" text-anchor="middle" fill="white" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="22" font-weight="800">A10 23GB</text>
-    <text x="696" y="310" text-anchor="middle" fill="#A5B4FC" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" font-weight="700">single GPU</text>
+    <text x="696" y="284" text-anchor="middle" fill="white" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="22" font-weight="800">RTX 4090</text>
+    <text x="696" y="310" text-anchor="middle" fill="#A5B4FC" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" font-weight="700">24GB · rented</text>
 
     <rect x="778" y="214" width="132" height="118" rx="18" fill="#FFFFFF" fill-opacity="0.055" stroke="#FFFFFF" stroke-opacity="0.10"/>
     <text x="844" y="250" text-anchor="middle" fill="#94A3B8" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="12" font-weight="700">STEPS</text>

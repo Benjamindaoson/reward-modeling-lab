@@ -62,7 +62,7 @@ The figure captures the central research move of the project: the **94.61% longe
 <td width="25%" valign="top">
 
 ### Hardware
-**1× NVIDIA A10 23GB**
+**1× rented NVIDIA RTX 4090 24GB**
 
 ~3h18m formal run · ~97.7% mean GPU utilization.
 
@@ -123,7 +123,7 @@ The LoRA adapters target attention and MLP projections, while the reward `score`
 
 ### Formal GPU run
 
-- **Hardware:** NVIDIA A10 23GB
+- **Hardware:** NVIDIA RTX 4090 24GB
 - **Wall-clock:** ~3h18m
 - **Mean GPU utilization:** ~97.7%
 - **Peak allocated training VRAM:** ~11.85GB
@@ -350,7 +350,7 @@ rather than "train once and report the best number."
 
 | Evidence | Verified scope |
 |---|---|
-| Real GPU training | 8B model · single A10 23GB · 1,000 optimizer steps |
+| Real GPU training | 8B model · single RTX 4090 24GB · 1,000 optimizer steps |
 | Training configuration | frozen JSON config under version control |
 | Preference data | 35,990 available pairs · ~8,000 instances processed in formal fixed-step run |
 | Frozen evaluation | 451 questions · 4,510 comparisons · 2,255 responses |
